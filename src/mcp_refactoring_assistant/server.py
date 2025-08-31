@@ -520,24 +520,39 @@ class EnhancedRefactoringAnalyzer:
             v = vulture.Vulture()
             v.scan(content, filename=file_path)
             
-            for unused_item in v.get_unused_code():
+            unused_items = list(v.get_unused_code())
+            
+            if unused_items:
+                # Consolidate all dead code into single guidance
+                items_list = []
+                locations = []
+                
+                for unused_item in unused_items:
+                    items_list.append(f"Line {unused_item.first_lineno}: Unused {unused_item.typ} '{unused_item.name}'")
+                    locations.append(f"Line {unused_item.first_lineno}")
+                
                 guidance_list.append(RefactoringGuidance(
                     issue_type="dead_code",
                     severity="low",
-                    location=f"Line {unused_item.first_lineno}",
-                    description=f"Unused {unused_item.typ}: {unused_item.name}",
+                    location=f"Multiple locations ({len(unused_items)} items)",
+                    description=f"{len(unused_items)} unused items found",
                     benefits=[
                         "Cleaner codebase",
-                        "Reduced complexity",
+                        "Reduced complexity", 
                         "Better maintainability"
                     ],
                     precise_steps=[
-                        f"1. Verify '{unused_item.name}' is truly unused",
-                        "2. Check if it's part of a public API",
-                        "3. Remove the unused code if confirmed",
-                        "4. Run tests to ensure nothing breaks"
+                        "1. Review all unused items listed below:",
+                        *[f"   • {item}" for item in items_list],
+                        "2. Verify each item is truly unused",
+                        "3. Check if any are part of a public API",
+                        "4. Remove confirmed unused code",
+                        "5. Run tests to ensure nothing breaks"
                     ],
-                    metrics={"confidence": unused_item.confidence}
+                    metrics={
+                        "total_items": len(unused_items),
+                        "confidence": sum(item.confidence for item in unused_items) / len(unused_items)
+                    }
                 ))
         
         except Exception as e:
