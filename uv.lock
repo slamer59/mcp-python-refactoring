@@ -64,6 +64,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi"
+version = "0.116.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/78/d7/6c8b3bfe33eeffa208183ec037fee0cce9f7f024089ab1c5d12ef04bd27c/fastapi-0.116.1.tar.gz", hash = "sha256:ed52cbf946abfd70c5a0dccb24673f0670deeb517a88b3544d03c2a6bf283143", size = 296485, upload-time = "2025-07-11T16:22:32.057Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/47/d63c60f59a59467fda0f93f46335c9d18526d7071f025cb5b89d5353ea42/fastapi-0.116.1-py3-none-any.whl", hash = "sha256:c46ac7c312df840f0c9e220f7964bada936781bc4e2e6eb71f1c4d7553786565", size = 95631, upload-time = "2025-07-11T16:22:30.485Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -232,16 +246,19 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp-refactoring-assistant"
+name = "mcp-python-refactoring"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "fastapi" },
     { name = "jedi" },
     { name = "libcst" },
     { name = "mccabe" },
     { name = "mcp" },
+    { name = "pyrefly" },
     { name = "radon" },
     { name = "rope" },
+    { name = "uvicorn" },
     { name = "vulture" },
 ]
 
@@ -252,13 +269,16 @@ mcp = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = ">=0.104.0" },
     { name = "jedi", specifier = ">=0.19.1" },
     { name = "libcst", specifier = ">=1.1.0" },
     { name = "mccabe", specifier = ">=0.7.0" },
     { name = "mcp", specifier = ">=1.13.1" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.0.0" },
+    { name = "pyrefly", specifier = ">=0.30.0" },
     { name = "radon", specifier = ">=6.0.1" },
     { name = "rope", specifier = ">=1.11.0" },
+    { name = "uvicorn", specifier = ">=0.24.0" },
     { name = "vulture", specifier = ">=2.10" },
 ]
 provides-extras = ["mcp"]
@@ -345,6 +365,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/68/85/1ea668bbab3c50071ca613c6ab30047fb36ab0da1b92fa8f17bbc38fd36c/pydantic_settings-2.10.1.tar.gz", hash = "sha256:06f0062169818d0f5524420a360d632d5857b83cffd4d42fe29597807a1614ee", size = 172583, upload-time = "2025-06-24T13:26:46.841Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/58/f0/427018098906416f580e3cf1366d3b1abfb408a0652e9f31600c24a1903c/pydantic_settings-2.10.1-py3-none-any.whl", hash = "sha256:a60952460b99cf661dc25c29c0ef171721f98bfcb52ef8d9ea4c943d7c8cc796", size = 45235, upload-time = "2025-06-24T13:26:45.485Z" },
+]
+
+[[package]]
+name = "pyrefly"
+version = "0.30.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/b7/486588e36e9cee8efef8d8367757705df1b119c94f0d7fe42a8a0f55869c/pyrefly-0.30.0.tar.gz", hash = "sha256:415188920d3fe1a816c05062fe2bc4e921baf451c1fd98544eb1e28ab4fe302d", size = 1323570, upload-time = "2025-08-25T20:03:23.187Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7d/d5/8eedf46f69b745782a61c6555322d87d8948492edec21931817bf738370b/pyrefly-0.30.0-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:f3593960c00f69db713136dbc829a8084b47b166cd942e47bd14e49317abe9bc", size = 6569489, upload-time = "2025-08-25T20:03:08.369Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/6a/03217af4a5b3478bd884d6b7c92977edc3aae8b9e8d4fc273fb4d5a50bd7/pyrefly-0.30.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:c1cfe1375365b102ec4b309d1640331d42a90506910e66f8572c1d5500b1d598", size = 6122895, upload-time = "2025-08-25T20:03:10.627Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/0d/97835228f7fe0d8f08661c3d15c785a3f040ace71e1f909f387ac5ea9128/pyrefly-0.30.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fe8108e3f267928f8d41fcab1a57dbc53e0323292d257a2afe7ec2f0ebc2edbc", size = 6369339, upload-time = "2025-08-25T20:03:12.427Z" },
+    { url = "https://files.pythonhosted.org/packages/82/04/fadac0757f79ab2a238c31e9321d3cc19b9a37971a0736f1934c5597a546/pyrefly-0.30.0-py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:97df6e6271a4201343dd6a443e8b53474252b53609a036140849eccb551dbd4b", size = 7163047, upload-time = "2025-08-25T20:03:14.231Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/8d/e6dd6fda2ea63f4023454e5ebf4406e6d4889652b6106d73a6a952b5c64c/pyrefly-0.30.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c71325b67619435b8c6b3aa2c88fe7ce59651fb7f6dad95c691ccb0b2f29ec6d", size = 6837162, upload-time = "2025-08-25T20:03:16.134Z" },
+    { url = "https://files.pythonhosted.org/packages/db/30/f80087019a2556ebd7f3144ac7b25b262d56ef39fca2f87187da3754e28d/pyrefly-0.30.0-py3-none-win32.whl", hash = "sha256:ab1636d190a536f282bcfcb8e6e81be33b332c309bc3122f0ebdbc32dce15cb3", size = 6338892, upload-time = "2025-08-25T20:03:18.072Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/2b/88da87bac99f19c7f6f418c104bd2a30e71e1cd28fc7413d5a1b56f01e3c/pyrefly-0.30.0-py3-none-win_amd64.whl", hash = "sha256:de0f94eaa7df86a1f55b0fd292c9ec6bfe11133440a6cd36ab35686fae95ad1c", size = 6760304, upload-time = "2025-08-25T20:03:19.62Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/08/822c730699fbab50903721f92f412f2f27a5b1003048fc819bc6425cc109/pyrefly-0.30.0-py3-none-win_arm64.whl", hash = "sha256:564041563037766a261f7185f62920f92373957d297e6facb1e724bd9e06c7f3", size = 6369468, upload-time = "2025-08-25T20:03:21.417Z" },
 ]
 
 [[package]]

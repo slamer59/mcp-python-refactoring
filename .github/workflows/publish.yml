@@ -36,6 +36,11 @@ jobs:
       run: |
         uv build
         
+    - name: Debug OIDC token
+      run: |
+        echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-'NOT SET'}"
+        echo "ACTIONS_ID_TOKEN_REQUEST_URL: ${ACTIONS_ID_TOKEN_REQUEST_URL:-'NOT SET'}"
+        
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:

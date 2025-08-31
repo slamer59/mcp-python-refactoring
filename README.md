@@ -101,6 +101,14 @@ Fast analysis for immediate refactoring opportunities.
 
 **Returns:** Quick summary of long functions and parameter issues
 
+#### 4. `check_types_with_pyrefly`
+Advanced type checking and quality analysis using pyrefly.
+
+**Parameters:**
+- `content` (required): Python code content to type check
+
+**Returns:** Detailed type errors, quality issues, and improvement suggestions
+
 ## Analysis Capabilities
 
 **Code Quality Issues Detected:**
@@ -122,6 +130,7 @@ Fast analysis for immediate refactoring opportunities.
 - **[Vulture](https://github.com/jendrikseipp/vulture)**: Dead code detection
 - **[Jedi](https://github.com/davidhalter/jedi)**: Semantic code analysis
 - **[LibCST](https://github.com/Instagram/LibCST)**: Syntax tree manipulation
+- **[Pyrefly](https://github.com/Khronos16/pyrefly)**: Advanced type checking and quality analysis
 
 ## Testing and Debugging
 

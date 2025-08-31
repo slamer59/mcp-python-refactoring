@@ -24,13 +24,10 @@ except ImportError as e:
 
 # Import analyzer
 try:
-    from src.mcp_refactoring_assistant.server import EnhancedRefactoringAnalyzer
+    from .server import EnhancedRefactoringAnalyzer
     ANALYZER_AVAILABLE = True
 except ImportError:
     try:
-        import sys
-        import os
-        sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
         from mcp_refactoring_assistant.server import EnhancedRefactoringAnalyzer
         ANALYZER_AVAILABLE = True
     except ImportError:
@@ -118,7 +115,8 @@ class CodeRefactorer:
                 "extraction_block": extraction_block
             }
 
-# MCP Tools setup
+# Initialize server and tools if MCP is available
+server = None
 if MCP_AVAILABLE:
     server = Server("python-refactoring")
 
@@ -215,7 +213,7 @@ if MCP_AVAILABLE:
                 type="text",
                 text=json.dumps({
                     "error": "Python refactoring analyzer not available",
-                    "suggestion": "Run: uv sync"
+                    "suggestion": "Install dependencies"
                 })
             )]
         
@@ -400,7 +398,7 @@ if MCP_AVAILABLE:
                 # Quick AST analysis
                 try:
                     tree = ast.parse(content)
-                    quick_results = {
+                    quick_results: Dict[str, Any] = {
                         "total_functions": 0,
                         "long_functions": [],
                         "complex_functions": [],
@@ -457,52 +455,53 @@ if MCP_AVAILABLE:
                 })
             )]
 
-    async def main():
-        """Launch the unified MCP server"""
-        print("🚀 Starting Python Refactoring MCP Server", file=sys.stderr)
-        print("📡 Modes: guide_only (default) | apply_changes", file=sys.stderr)
+async def run_server():
+    """Launch the unified MCP server"""
+    print("🚀 Starting Python Refactoring MCP Server", file=sys.stderr)
+    print("📡 Modes: guide_only (default) | apply_changes", file=sys.stderr)
+    
+    # Check for SSE mode via command line args
+    if len(sys.argv) > 1 and sys.argv[1] == "--sse":
+        port = int(sys.argv[2]) if len(sys.argv) > 2 else 3001
+        print(f"🌐 Starting SSE server on port {port}", file=sys.stderr)
         
-        # Check for SSE mode via command line args
-        if len(sys.argv) > 1 and sys.argv[1] == "--sse":
-            port = int(sys.argv[2]) if len(sys.argv) > 2 else 3001
-            print(f"🌐 Starting SSE server on port {port}", file=sys.stderr)
-            
-            transport = SseServerTransport("/messages")
-            
-            import uvicorn
-            from fastapi import FastAPI
-            from fastapi.middleware.cors import CORSMiddleware
-            
-            app = FastAPI()
-            app.add_middleware(
-                CORSMiddleware,
-                allow_origins=["*"],
-                allow_credentials=True,
-                allow_methods=["*"],
-                allow_headers=["*"],
+        transport = SseServerTransport("/messages")
+        
+        import uvicorn
+        from fastapi import FastAPI
+        from fastapi.middleware.cors import CORSMiddleware
+        
+        app = FastAPI()
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        
+        # Mount the SSE transport
+        app.mount("/", transport.create_app())
+        
+        # Run the server
+        uvicorn.run(app, host="0.0.0.0", port=port)
+    else:
+        print("🔄 Listening on stdin/stdout", file=sys.stderr)
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream,
+                write_stream,
+                server.create_initialization_options()
             )
-            
-            # Mount the SSE transport
-            app.mount("/", transport.create_app())
-            
-            # Run the server
-            uvicorn.run(app, host="0.0.0.0", port=port)
-        else:
-            print("🔄 Listening on stdin/stdout", file=sys.stderr)
-            async with stdio_server() as (read_stream, write_stream):
-                await server.run(
-                    read_stream,
-                    write_stream,
-                    server.create_initialization_options()
-                )
 
-else:
-    def main():
+def main():
+    """Main entry point"""
+    if not MCP_AVAILABLE:
         print("❌ MCP not available")
-        print("💡 Install with: uv add mcp")
+        print("💡 Dependencies missing")
+        sys.exit(1)
+    
+    asyncio.run(run_server())
 
 if __name__ == "__main__":
-    if MCP_AVAILABLE:
-        asyncio.run(main())
-    else:
-        main()
+    main()
