@@ -717,34 +717,63 @@ class EnhancedRefactoringAnalyzer:
                 temp_file_path = temp_file.name
             
             try:
-                # Use McCabe to get complexity for functions above threshold
-                complexity_items = list(mccabe.get_code_complexity(content, threshold=10))
+                # Use McCabe to capture complexity output
+                import io
+                import contextlib
                 
-                for item in complexity_items:
-                    # item format: (line_number, function_name, complexity)
-                    line_number, function_name, complexity = item
-                    
-                    guidance_list.append(
-                        RefactoringGuidance(
-                            issue_type="high_cyclomatic_complexity",
-                            severity="high",
-                            location=f"Function '{function_name}' at line {line_number} in {file_path}",
-                            description=f"High cyclomatic complexity ({complexity}). Consider breaking down this function.",
-                            precise_steps=[
-                                f"Function has {complexity} different execution paths (recommended: ≤10)",
-                                "Look for nested if/elif/else statements and loops",
-                                "Extract complex conditional logic into separate functions",
-                                "Use early returns to reduce nesting levels",
-                                "Consider the Single Responsibility Principle"
-                            ],
-                            benefits=[
-                                "Improved code readability and maintainability",
-                                "Easier testing with fewer code paths",
-                                "Reduced cognitive load for developers",
-                                "Better debugging experience"
-                            ]
-                        )
-                    )
+                # Capture McCabe output
+                output_buffer = io.StringIO()
+                with contextlib.redirect_stdout(output_buffer):
+                    mccabe.get_code_complexity(content, threshold=10)
+                
+                output = output_buffer.getvalue()
+                
+                # Parse the output to extract complexity information
+                lines = output.strip().split('\n')
+                for line in lines:
+                    if line and 'C901' in line and 'too complex' in line:
+                        # Parse format: "stdin:33:1: C901 'extremely_complex_function' is too complex (44)"
+                        parts = line.split(':')
+                        if len(parts) >= 4:
+                            try:
+                                line_number = int(parts[1])
+                                message_part = ':'.join(parts[3:]).strip()
+                                
+                                # Extract function name and complexity from message
+                                if "'" in message_part:
+                                    func_start = message_part.find("'") + 1
+                                    func_end = message_part.find("'", func_start)
+                                    function_name = message_part[func_start:func_end]
+                                    
+                                    # Extract complexity number
+                                    if '(' in message_part and ')' in message_part:
+                                        complexity_start = message_part.rfind('(') + 1
+                                        complexity_end = message_part.rfind(')')
+                                        complexity = int(message_part[complexity_start:complexity_end])
+                                        
+                                        guidance_list.append(
+                                            RefactoringGuidance(
+                                                issue_type="high_cyclomatic_complexity",
+                                                severity="high",
+                                                location=f"Function '{function_name}' at line {line_number} in {file_path}",
+                                                description=f"High cyclomatic complexity ({complexity}). Consider breaking down this function.",
+                                                precise_steps=[
+                                                    f"Function has {complexity} different execution paths (recommended: ≤10)",
+                                                    "Look for nested if/elif/else statements and loops",
+                                                    "Extract complex conditional logic into separate functions",
+                                                    "Use early returns to reduce nesting levels",
+                                                    "Consider the Single Responsibility Principle"
+                                                ],
+                                                benefits=[
+                                                    "Improved code readability and maintainability",
+                                                    "Easier testing with fewer code paths",
+                                                    "Reduced cognitive load for developers",
+                                                    "Better debugging experience"
+                                                ]
+                                            )
+                                        )
+                            except (ValueError, IndexError):
+                                continue
                     
             finally:
                 # Clean up temp file
@@ -921,6 +950,405 @@ class EnhancedRefactoringAnalyzer:
             
         return guidance_list
 
+    def analyze_test_coverage(self, source_path: str, test_path: Optional[str] = None, target_coverage: int = 80) -> Dict[str, Any]:
+        """Analyze test coverage and provide improvement suggestions"""
+        import subprocess
+        import glob
+        
+        try:
+            import coverage
+        except ImportError:
+            coverage = None
+        
+        result = {
+            "coverage_analysis": {},
+            "missing_coverage": [],
+            "testing_suggestions": [],
+            "files_needing_tests": [],
+            "coverage_report": "",
+            "recommendations": []
+        }
+        
+        try:
+            # Initialize coverage if available
+            if coverage:
+                cov = coverage.Coverage()
+                cov.start()
+            
+            # Try to run existing tests if test_path provided
+            if test_path and os.path.exists(test_path):
+                try:
+                    # Run pytest with coverage
+                    cmd = [
+                        "python", "-m", "pytest", 
+                        test_path,
+                        f"--cov={source_path}",
+                        "--cov-report=term-missing",
+                        "--cov-report=json:coverage.json"
+                    ]
+                    subprocess.run(cmd, capture_output=True, text=True, cwd=".")
+                    
+                    # Read coverage.json if it exists
+                    if os.path.exists("coverage.json"):
+                        with open("coverage.json", "r") as f:
+                            coverage_data = json.load(f)
+                            result["coverage_analysis"] = coverage_data
+                        os.remove("coverage.json")
+                        
+                except Exception as e:
+                    result["error"] = f"Error running tests: {e}"
+            
+            # Analyze source files for testing needs
+            if os.path.isfile(source_path):
+                source_files = [source_path]
+            else:
+                source_files = glob.glob(f"{source_path}/**/*.py", recursive=True)
+            
+            for file_path in source_files:
+                if "__pycache__" in file_path or file_path.endswith("__init__.py"):
+                    continue
+                    
+                with open(file_path, 'r') as f:
+                    content = f.read()
+                
+                # Analyze what needs testing
+                analysis = self._analyze_testability(content, file_path)
+                result["missing_coverage"].extend(analysis["untested_functions"])
+                result["testing_suggestions"].extend(analysis["suggestions"])
+                
+                if analysis["needs_tests"]:
+                    result["files_needing_tests"].append({
+                        "file": file_path,
+                        "functions": analysis["functions"],
+                        "classes": analysis["classes"],
+                        "complexity": analysis["complexity_score"]
+                    })
+            
+            # Generate recommendations
+            result["recommendations"] = self._generate_testing_recommendations(
+                result["files_needing_tests"], 
+                target_coverage
+            )
+            
+        except ImportError:
+            result["error"] = "Coverage package not installed. Install with: pip install coverage"
+        except Exception as e:
+            result["error"] = f"Coverage analysis failed: {str(e)}"
+        
+        return result
+    
+    def _analyze_testability(self, content: str, file_path: str) -> Dict[str, Any]:
+        """Analyze code for testability and testing needs"""
+        result = {
+            "untested_functions": [],
+            "suggestions": [],
+            "needs_tests": False,
+            "functions": [],
+            "classes": [],
+            "complexity_score": 0
+        }
+        
+        try:
+            tree = ast.parse(content)
+            
+            # Find functions and classes
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    func_info = {
+                        "name": node.name,
+                        "line": node.lineno,
+                        "args": len(node.args.args),
+                        "is_private": node.name.startswith("_"),
+                        "is_async": isinstance(node, ast.AsyncFunctionDef),
+                        "docstring": ast.get_docstring(node) is not None
+                    }
+                    result["functions"].append(func_info)
+                    
+                    # Suggest tests for public functions
+                    if not node.name.startswith("_") and node.name != "__init__":
+                        result["untested_functions"].append(f"{file_path}:{node.lineno} - Function '{node.name}'")
+                        result["suggestions"].append({
+                            "type": "unit_test",
+                            "target": f"{node.name}",
+                            "location": f"{file_path}:{node.lineno}",
+                            "suggestion": f"Create test for function '{node.name}' - {len(node.args.args)} parameters",
+                            "priority": "high" if len(node.args.args) > 3 else "medium"
+                        })
+                
+                elif isinstance(node, ast.ClassDef):
+                    class_info = {
+                        "name": node.name,
+                        "line": node.lineno,
+                        "methods": len([n for n in node.body if isinstance(n, ast.FunctionDef)]),
+                        "is_private": node.name.startswith("_")
+                    }
+                    result["classes"].append(class_info)
+                    
+                    if not node.name.startswith("_"):
+                        result["suggestions"].append({
+                            "type": "class_test",
+                            "target": f"{node.name}",
+                            "location": f"{file_path}:{node.lineno}",
+                            "suggestion": f"Create test class for '{node.name}' with {class_info['methods']} methods",
+                            "priority": "high"
+                        })
+            
+            # Calculate complexity score
+            result["complexity_score"] = len(result["functions"]) * 0.3 + len(result["classes"]) * 0.7
+            result["needs_tests"] = len(result["functions"]) > 0 or len(result["classes"]) > 0
+            
+        except Exception as e:
+            result["suggestions"].append({
+                "type": "error",
+                "suggestion": f"Could not analyze {file_path}: {e}",
+                "priority": "low"
+            })
+        
+        return result
+    
+    def _generate_testing_recommendations(self, files_needing_tests: List[Dict], target_coverage: int) -> List[str]:
+        """Generate specific testing recommendations based on existing setup"""
+        recommendations = []
+        
+        if not files_needing_tests:
+            recommendations.append("✅ No additional tests needed - good job!")
+            return recommendations
+        
+        # Detect existing test framework and setup
+        test_framework = self._detect_test_framework()
+        
+        recommendations.extend([
+            f"🎯 TARGET: {target_coverage}% test coverage",
+            f"📊 ANALYSIS: {len(files_needing_tests)} files need testing",
+            f"🔍 DETECTED: {test_framework['framework']} framework",
+            "",
+            "📋 TESTING STRATEGY:"
+        ])
+        
+        # Priority files (high complexity first)
+        priority_files = sorted(files_needing_tests, key=lambda x: x["complexity"], reverse=True)[:5]
+        
+        for i, file_info in enumerate(priority_files, 1):
+            recommendations.append(f"{i}. {file_info['file']}")
+            recommendations.append(f"   • {len(file_info['functions'])} functions, {len(file_info['classes'])} classes")
+            recommendations.append(f"   • Complexity: {file_info['complexity']:.1f}")
+            
+            # Specific test file suggestions based on existing pattern
+            test_file = self._suggest_test_file_path(file_info['file'], test_framework)
+            recommendations.append(f"   • Create: {test_file}")
+            recommendations.append("")
+        
+        # Framework-specific recommendations
+        recommendations.extend(self._get_framework_recommendations(test_framework, target_coverage))
+        
+        return recommendations
+    
+    def _detect_test_framework(self) -> Dict[str, Any]:
+        """Detect existing test framework and configuration"""
+        framework_info = {
+            "framework": "unknown",
+            "config_files": [],
+            "test_directory": None,
+            "coverage_tool": None,
+            "existing_tests": []
+        }
+        
+        # Check for pytest
+        if os.path.exists("pytest.ini") or os.path.exists("pyproject.toml"):
+            framework_info["framework"] = "pytest"
+            if os.path.exists("pytest.ini"):
+                framework_info["config_files"].append("pytest.ini")
+            if os.path.exists("pyproject.toml"):
+                framework_info["config_files"].append("pyproject.toml")
+        
+        # Check for unittest
+        elif os.path.exists("setup.cfg") or any(os.path.exists(d) for d in ["test", "tests"]):
+            framework_info["framework"] = "unittest"
+        
+        # Detect test directory and analyze existing patterns
+        for test_dir in ["tests", "test", "testing"]:
+            if os.path.exists(test_dir):
+                framework_info["test_directory"] = test_dir
+                # Count existing test files
+                test_files = glob.glob(f"{test_dir}/**/test_*.py", recursive=True)
+                test_files.extend(glob.glob(f"{test_dir}/**/*_test.py", recursive=True))
+                framework_info["existing_tests"] = test_files
+                
+                # Analyze test patterns in existing files
+                framework_info["test_patterns"] = self._analyze_test_patterns(test_files)
+                break
+        
+        # Detect coverage tools
+        try:
+            import coverage
+            framework_info["coverage_tool"] = "coverage.py"
+        except ImportError:
+            pass
+        
+        return framework_info
+    
+    def _analyze_test_patterns(self, test_files: List[str]) -> Dict[str, Any]:
+        """Analyze existing test files to detect patterns"""
+        patterns = {
+            "style": "unknown",  # function_based, class_based, mixed
+            "naming": "unknown",  # test_*, *_test
+            "class_count": 0,
+            "function_count": 0,
+            "uses_fixtures": False,
+            "uses_parametrize": False,
+            "uses_mock": False
+        }
+        
+        if not test_files:
+            return patterns
+        
+        total_classes = 0
+        total_functions = 0
+        
+        # Analyze first few test files to detect patterns
+        for test_file in test_files[:5]:  # Sample first 5 files
+            try:
+                with open(test_file, 'r') as f:
+                    content = f.read()
+                
+                # Parse to find classes and functions
+                tree = ast.parse(content)
+                
+                file_classes = 0
+                file_functions = 0
+                
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.ClassDef):
+                        if node.name.startswith('Test'):
+                            file_classes += 1
+                    elif isinstance(node, ast.FunctionDef):
+                        if node.name.startswith('test_'):
+                            file_functions += 1
+                
+                total_classes += file_classes
+                total_functions += file_functions
+                
+                # Check for pytest patterns
+                if "pytest" in content or "@pytest" in content:
+                    patterns["uses_fixtures"] = True
+                if "@pytest.mark.parametrize" in content:
+                    patterns["uses_parametrize"] = True
+                if "mock" in content.lower() or "Mock" in content:
+                    patterns["uses_mock"] = True
+                
+            except Exception:
+                continue
+        
+        patterns["class_count"] = total_classes
+        patterns["function_count"] = total_functions
+        
+        # Determine style
+        if total_classes > total_functions:
+            patterns["style"] = "class_based"
+        elif total_functions > total_classes:
+            patterns["style"] = "function_based"
+        else:
+            patterns["style"] = "mixed"
+        
+        # Determine naming pattern
+        test_prefix_files = [f for f in test_files if os.path.basename(f).startswith('test_')]
+        test_suffix_files = [f for f in test_files if os.path.basename(f).endswith('_test.py')]
+        
+        if len(test_prefix_files) > len(test_suffix_files):
+            patterns["naming"] = "test_*"
+        elif len(test_suffix_files) > len(test_prefix_files):
+            patterns["naming"] = "*_test"
+        else:
+            patterns["naming"] = "mixed"
+        
+        return patterns
+    
+    def _suggest_test_file_path(self, source_file: str, framework_info: Dict) -> str:
+        """Suggest test file path based on existing patterns"""
+        if framework_info["test_directory"]:
+            base_dir = framework_info["test_directory"]
+        else:
+            base_dir = "tests"  # Default
+        
+        # Remove common source prefixes
+        clean_path = source_file.replace("src/", "").replace("lib/", "")
+        filename = os.path.basename(clean_path).replace(".py", "")
+        
+        # Use existing naming pattern if detected
+        test_patterns = framework_info.get("test_patterns", {})
+        naming_pattern = test_patterns.get("naming", "unknown")
+        
+        if naming_pattern == "*_test":
+            test_filename = f"{filename}_test.py"
+        elif naming_pattern == "test_*" or framework_info["framework"] == "pytest":
+            test_filename = f"test_{filename}.py"
+        else:
+            # Default to test_ prefix
+            test_filename = f"test_{filename}.py"
+        
+        return os.path.join(base_dir, test_filename)
+    
+    def _get_framework_recommendations(self, framework_info: Dict, target_coverage: int) -> List[str]:
+        """Get framework-specific recommendations"""
+        recommendations = []
+        
+        if framework_info["framework"] == "pytest":
+            patterns = framework_info.get("test_patterns", {})
+            recommendations.extend([
+                "🔧 PYTEST SETUP DETECTED:",
+                f"• Existing config: {', '.join(framework_info['config_files']) if framework_info['config_files'] else 'None'}",
+                f"• Test directory: {framework_info['test_directory'] or 'Not found'}",
+                f"• Existing tests: {len(framework_info['existing_tests'])} files",
+                f"• Test style: {patterns.get('style', 'unknown')} ({patterns.get('class_count', 0)} classes, {patterns.get('function_count', 0)} functions)",
+                f"• Naming pattern: {patterns.get('naming', 'unknown')}",
+                "",
+                "⚡ PYTEST RECOMMENDATIONS (following your patterns):",
+                f"• Use {'class-based' if patterns.get('style') == 'class_based' else 'function-based'} tests",
+                f"• Follow {patterns.get('naming', 'test_*')} naming convention",
+                "• Use fixtures for common test setup" + (" ✅" if patterns.get('uses_fixtures') else ""),
+                "• Use @pytest.mark.parametrize for multiple test cases" + (" ✅" if patterns.get('uses_parametrize') else ""),
+                "• Mock external dependencies" + (" ✅" if patterns.get('uses_mock') else ""),
+                f"• Run: pytest --cov=src --cov-report=html --cov-fail-under={target_coverage}",
+            ])
+        
+        elif framework_info["framework"] == "unittest":
+            patterns = framework_info.get("test_patterns", {})
+            recommendations.extend([
+                "🔧 UNITTEST SETUP DETECTED:",
+                f"• Test directory: {framework_info['test_directory'] or 'Not found'}",
+                f"• Existing tests: {len(framework_info['existing_tests'])} files",
+                f"• Test style: {patterns.get('style', 'unknown')} ({patterns.get('class_count', 0)} classes, {patterns.get('function_count', 0)} functions)",
+                f"• Naming pattern: {patterns.get('naming', 'unknown')}",
+                "",
+                "⚡ UNITTEST RECOMMENDATIONS (following your patterns):",
+                f"• Use {'class-based TestCase' if patterns.get('style') == 'class_based' else 'function-based'} tests",
+                f"• Follow {patterns.get('naming', 'test_*')} naming convention",
+                "• Use setUp() and tearDown() for test fixtures",
+                "• Use unittest.mock for mocking dependencies" + (" ✅" if patterns.get('uses_mock') else ""), 
+                "• Run: python -m unittest discover",
+                f"• Add coverage: coverage run -m unittest && coverage report --fail-under={target_coverage}",
+            ])
+        
+        else:
+            recommendations.extend([
+                "🔧 NO TEST FRAMEWORK DETECTED:",
+                "• Consider installing pytest: pip install pytest pytest-cov",
+                "• Or use built-in unittest module",
+                "• Create 'tests/' directory structure",
+                f"• Aim for {target_coverage}%+ test coverage",
+            ])
+        
+        recommendations.extend([
+            "",
+            "⚡ QUICK WINS:",
+            "• Start with pure functions (no side effects)",
+            "• Test public API methods first",
+            "• Add edge case testing",
+            "• Use existing patterns from current test files" if framework_info["existing_tests"] else "• Follow framework conventions"
+        ])
+        
+        return recommendations
+
 
 # MCP Server Implementation
 # Check if MCP is available
@@ -1008,6 +1436,29 @@ if MCP_AVAILABLE:
                         }
                     },
                     "required": ["content"],
+                },
+            ),
+            types.Tool(
+                name="analyze_test_coverage",
+                description="Analyze Python test coverage and suggest improvements",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "source_path": {
+                            "type": "string",
+                            "description": "Path to source code directory or file",
+                        },
+                        "test_path": {
+                            "type": "string", 
+                            "description": "Path to test directory (optional)",
+                        },
+                        "target_coverage": {
+                            "type": "integer",
+                            "description": "Target coverage percentage (default: 80)",
+                            "default": 80
+                        }
+                    },
+                    "required": ["source_path"],
                 },
             ),
         ]
@@ -1148,6 +1599,19 @@ if MCP_AVAILABLE:
 
                 return [
                     types.TextContent(type="text", text=json.dumps(result, indent=2))
+                ]
+
+            elif name == "analyze_test_coverage":
+                source_path = arguments["source_path"]
+                test_path = arguments.get("test_path")
+                target_coverage = arguments.get("target_coverage", 80)
+
+                # Analyze test coverage
+                analyzer = EnhancedRefactoringAnalyzer()
+                coverage_analysis = analyzer.analyze_test_coverage(source_path, test_path, target_coverage)
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(coverage_analysis, indent=2))
                 ]
 
             else:

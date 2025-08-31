@@ -4,119 +4,194 @@ Example Python code with various refactoring opportunities
 This file demonstrates different patterns that the MCP tool can detect
 """
 
-def process_user_registration(user_data, email, password, confirm_password, 
-                            phone, address, city, country, postal_code):
-    """Long function with multiple refactoring opportunities"""
-    
-    # Validation block that could be extracted
+import hashlib
+import datetime
+import uuid
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class UserRegistrationData:
+    """Data class for user registration information"""
+    user_data: dict
+    email: str
+    password: str
+    confirm_password: str
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    postal_code: Optional[str] = None
+
+
+class ValidationError(Exception):
+    """Custom exception for validation errors"""
+    pass
+
+
+def validate_user_data(user_data: dict) -> None:
+    """Validate basic user data"""
     if not user_data:
-        print("User data is required")
-        return False
-    
+        raise ValidationError("User data is required")
+
+
+def validate_email(email: str) -> None:
+    """Validate email format and availability"""
     if not email or '@' not in email:
-        print("Valid email is required") 
-        return False
-        
+        raise ValidationError("Valid email is required")
+    
+    if check_email_exists(email):
+        raise ValidationError("Email already exists")
+
+
+def validate_password(password: str, confirm_password: str) -> None:
+    """Validate password requirements"""
     if len(password) < 8:
-        print("Password must be at least 8 characters")
-        return False
+        raise ValidationError("Password must be at least 8 characters")
         
     if password != confirm_password:
-        print("Passwords do not match")
-        return False
+        raise ValidationError("Passwords do not match")
+
+
+def validate_and_format_phone(phone: Optional[str]) -> Optional[str]:
+    """Validate and format phone number"""
+    if not phone:
+        return None
+        
+    formatted_phone = phone if phone.startswith('+') else '+' + phone
+    clean_phone = formatted_phone.replace('+', '').replace('-', '').replace(' ', '')
     
-    # Phone validation block
-    if phone and not phone.startswith('+'):
-        phone = '+' + phone
+    if len(clean_phone) < 10:
+        raise ValidationError("Invalid phone number")
         
-    if phone and len(phone.replace('+', '').replace('-', '').replace(' ', '')) < 10:
-        print("Invalid phone number")
-        return False
-        
-    # Address processing block
+    return formatted_phone
+
+
+def validate_and_format_address(address: str, city: str, country: str, postal_code: str) -> str:
+    """Validate and format full address"""
     full_address = f"{address}, {city}, {country} {postal_code}"
     
     if len(full_address) > 200:
-        print("Address too long")
-        return False
+        raise ValidationError("Address too long")
         
-    # Complex database operations
+    return full_address
+
+
+def create_user_record(registration_data: UserRegistrationData, user_id: str, phone: Optional[str], full_address: str) -> dict:
+    """Create user record dictionary"""
+    password_hash = hashlib.sha256(registration_data.password.encode()).hexdigest()
+    
+    return {
+        'id': user_id,
+        'email': registration_data.email,
+        'password_hash': password_hash,
+        'phone': phone,
+        'address': full_address,
+        'created_at': get_current_timestamp(),
+        'verified': False
+    }
+
+
+def process_user_registration(registration_data: UserRegistrationData) -> bool:
+    """Process user registration with improved structure"""
     try:
-        # This block could also be extracted
+        # Validation phase
+        validate_user_data(registration_data.user_data)
+        validate_email(registration_data.email)
+        validate_password(registration_data.password, registration_data.confirm_password)
+        
+        phone = validate_and_format_phone(registration_data.phone)
+        full_address = validate_and_format_address(
+            registration_data.address, 
+            registration_data.city, 
+            registration_data.country, 
+            registration_data.postal_code
+        )
+        
+        # Registration phase
         user_id = generate_user_id()
+        user_record = create_user_record(registration_data, user_id, phone, full_address)
         
-        if check_email_exists(email):
-            print("Email already exists")
-            return False
-            
-        # Hash password
-        import hashlib
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-        
-        # Create user record
-        user_record = {
-            'id': user_id,
-            'email': email,
-            'password_hash': password_hash,
-            'phone': phone,
-            'address': full_address,
-            'created_at': get_current_timestamp(),
-            'verified': False
-        }
-        
-        # Save to database
+        # Persistence and notification phase
         save_user_to_database(user_record)
+        send_verification_email(registration_data.email, user_id)
         
-        # Send verification email
-        send_verification_email(email, user_id)
-        
-        print(f"User {email} registered successfully with ID {user_id}")
+        print(f"User {registration_data.email} registered successfully with ID {user_id}")
         return True
         
+    except ValidationError as e:
+        print(f"Validation failed: {e}")
+        return False
     except Exception as e:
         print(f"Registration failed: {e}")
         return False
 
-def calculate_complex_score(data1, data2, data3, data4, data5, data6, data7, weight1, weight2, weight3):
-    """Function with too many parameters"""
-    # Complex calculation that has high cyclomatic complexity
+@dataclass
+class ScoreCalculationData:
+    """Data class for score calculation parameters"""
+    data1: float = 0
+    data2: float = 0
+    data3: int = 0
+    data4: float = 0
+    data5: float = 0
+    data6: float = 0
+    data7: float = 0
+    weight1: float = 0
+    weight2: float = 0
+    weight3: float = 0
+
+
+def calculate_data1_score(data1: float, weight1: float) -> float:
+    """Calculate score for data1 with weight1"""
+    if data1 <= 0:
+        return 0
+    
+    if data1 > 100:
+        multiplier = 1.5 if weight1 > 0.5 else 1.0
+    else:
+        multiplier = 1.2 if weight1 > 0.3 else 0.8
+    
+    return data1 * weight1 * multiplier
+
+
+def calculate_data2_score(data2: float, weight2: float) -> float:
+    """Calculate score for data2 with weight2"""
+    if data2 <= 0:
+        return 0
+    
+    if data2 > 50:
+        multiplier = 2.0 if weight2 > 0.7 else 1.5
+        return data2 * weight2 * multiplier
+    else:
+        return data2 * weight2
+
+
+def calculate_data3_score(data3: int) -> float:
+    """Calculate score for data3 using alternating pattern"""
+    if data3 <= 0:
+        return 0
+    
     total = 0
-    
-    if data1 > 0:
-        if data1 > 100:
-            if weight1 > 0.5:
-                total += data1 * weight1 * 1.5
-            else:
-                total += data1 * weight1
+    for i in range(data3):
+        if i % 2 == 0:
+            total += i * 0.1
         else:
-            if weight1 > 0.3:
-                total += data1 * weight1 * 1.2
-            else:
-                total += data1 * weight1 * 0.8
+            total -= i * 0.05
     
-    if data2 > 0:
-        if data2 > 50:
-            if weight2 > 0.7:
-                total += data2 * weight2 * 2.0
-            else:
-                total += data2 * weight2 * 1.5
-        else:
-            total += data2 * weight2
-            
-    if data3 > 0:
-        for i in range(data3):
-            if i % 2 == 0:
-                total += i * 0.1
-            else:
-                total -= i * 0.05
-                
     return total
 
-def unused_function():
-    """This function is never called - dead code"""
-    return "This should be detected as unused"
 
-unused_variable = "This variable is never used"
+def calculate_complex_score(score_data: ScoreCalculationData) -> float:
+    """Calculate complex score with improved structure"""
+    total = 0
+    
+    total += calculate_data1_score(score_data.data1, score_data.weight1)
+    total += calculate_data2_score(score_data.data2, score_data.weight2)
+    total += calculate_data3_score(score_data.data3)
+    
+    return total
+
 
 def helper_function():
     """Actually used helper function"""
@@ -127,25 +202,28 @@ def main():
     result = helper_function()
     print(f"Result: {result}")
 
-# Helper functions for the example
-def generate_user_id():
-    import uuid
+def generate_user_id() -> str:
+    """Generate unique user ID"""
     return str(uuid.uuid4())
 
-def check_email_exists(email):
-    # Simulate database check
+
+def check_email_exists(email: str) -> bool:
+    """Simulate database check for existing email"""
     return email in ['admin@example.com', 'test@example.com']
 
-def save_user_to_database(user_record):
-    # Simulate database save
+
+def save_user_to_database(user_record: dict) -> None:
+    """Simulate database save operation"""
     print(f"Saving user to database: {user_record['email']}")
 
-def send_verification_email(email, user_id):
-    # Simulate email sending
+
+def send_verification_email(email: str, user_id: str) -> None:
+    """Simulate email sending"""
     print(f"Sending verification email to {email} for user {user_id}")
 
-def get_current_timestamp():
-    import datetime
+
+def get_current_timestamp() -> str:
+    """Get current timestamp as ISO string"""
     return datetime.datetime.now().isoformat()
 
 if __name__ == "__main__":
