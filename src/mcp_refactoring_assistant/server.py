@@ -1349,6 +1349,226 @@ class EnhancedRefactoringAnalyzer:
         
         return recommendations
 
+    def generate_tdd_refactoring_guidance(self, content: str, function_name: Optional[str] = None, test_path: Optional[str] = None) -> Dict[str, Any]:
+        """Generate TDD-based refactoring guidance following Red-Green-Refactor pattern"""
+        result = {
+            "tdd_workflow": [],
+            "current_tests": {},
+            "missing_tests": [],
+            "refactoring_targets": [],
+            "step_by_step_plan": [],
+            "test_templates": {}
+        }
+        
+        try:
+            # Parse code to identify refactoring targets
+            tree = ast.parse(content)
+            refactoring_targets = []
+            
+            # Find complex functions/classes that need refactoring
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    if function_name and node.name != function_name:
+                        continue
+                    
+                    # Calculate complexity
+                    complexity = self._calculate_function_complexity(node, content)
+                    if complexity > 10 or (hasattr(node, 'end_lineno') and (node.end_lineno - node.lineno) > 20):
+                        refactoring_targets.append({
+                            "type": "function",
+                            "name": node.name,
+                            "line": node.lineno,
+                            "complexity": complexity,
+                            "needs_test": True
+                        })
+                
+                elif isinstance(node, ast.ClassDef):
+                    if function_name and node.name != function_name:
+                        continue
+                    
+                    method_count = len([n for n in node.body if isinstance(n, ast.FunctionDef)])
+                    if method_count > 5:
+                        refactoring_targets.append({
+                            "type": "class", 
+                            "name": node.name,
+                            "line": node.lineno,
+                            "methods": method_count,
+                            "needs_test": True
+                        })
+            
+            result["refactoring_targets"] = refactoring_targets
+            
+            # Check for existing tests
+            test_coverage = self._check_existing_tests(refactoring_targets, test_path)
+            result["current_tests"] = test_coverage
+            
+            # Generate TDD workflow for each target
+            for target in refactoring_targets:
+                tdd_plan = self._generate_tdd_plan(target, test_coverage.get(target["name"], {}))
+                result["step_by_step_plan"].append(tdd_plan)
+                
+                # Generate test template if missing
+                if not test_coverage.get(target["name"], {}).get("has_test"):
+                    template = self._generate_test_template(target)
+                    result["test_templates"][target["name"]] = template
+            
+            # Overall TDD workflow
+            result["tdd_workflow"] = [
+                "🔴 RED: Write failing tests first",
+                "🟢 GREEN: Make tests pass with minimal code", 
+                "🔵 REFACTOR: Improve code while keeping tests green",
+                "🔄 REPEAT: Continue cycle for each improvement"
+            ]
+            
+        except Exception as e:
+            result["error"] = f"TDD analysis failed: {str(e)}"
+        
+        return result
+    
+    def _calculate_function_complexity(self, node: ast.FunctionDef, content: str) -> int:
+        """Calculate cyclomatic complexity of a function"""
+        complexity = 1  # Base complexity
+        
+        for child in ast.walk(node):
+            if isinstance(child, (ast.If, ast.While, ast.For, ast.ExceptHandler)):
+                complexity += 1
+            elif isinstance(child, ast.BoolOp):
+                complexity += len(child.values) - 1
+        
+        return complexity
+    
+    def _check_existing_tests(self, targets: List[Dict], test_path: Optional[str]) -> Dict[str, Any]:
+        """Check if targets already have tests"""
+        test_coverage = {}
+        
+        if not test_path or not os.path.exists(test_path):
+            return {target["name"]: {"has_test": False, "test_file": None} for target in targets}
+        
+        # Find test files
+        test_files = glob.glob(f"{test_path}/**/test_*.py", recursive=True)
+        test_files.extend(glob.glob(f"{test_path}/**/*_test.py", recursive=True))
+        
+        for target in targets:
+            target_name = target["name"]
+            test_coverage[target_name] = {"has_test": False, "test_file": None, "test_functions": []}
+            
+            # Search for tests mentioning this function/class
+            for test_file in test_files:
+                try:
+                    with open(test_file, 'r') as f:
+                        test_content = f.read()
+                    
+                    # Simple check for function/class name in test file
+                    if target_name.lower() in test_content.lower():
+                        test_tree = ast.parse(test_content)
+                        test_functions = []
+                        
+                        for node in ast.walk(test_tree):
+                            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
+                                if target_name.lower() in node.name.lower():
+                                    test_functions.append(node.name)
+                        
+                        if test_functions:
+                            test_coverage[target_name] = {
+                                "has_test": True,
+                                "test_file": test_file,
+                                "test_functions": test_functions
+                            }
+                            break
+                            
+                except Exception:
+                    continue
+        
+        return test_coverage
+    
+    def _generate_tdd_plan(self, target: Dict, existing_tests: Dict) -> Dict[str, Any]:
+        """Generate specific TDD plan for a target"""
+        plan = {
+            "target": f"{target['type']} '{target['name']}'",
+            "current_status": "Has tests" if existing_tests.get("has_test") else "No tests found",
+            "tdd_steps": []
+        }
+        
+        if existing_tests.get("has_test"):
+            # Already has tests - focus on refactoring workflow
+            plan["tdd_steps"] = [
+                f"🔍 VERIFY: Run existing tests for {target['name']}",
+                f"📋 COMMAND: pytest {existing_tests['test_file']} -v",
+                "✅ CONFIRM: All tests pass (GREEN state)",
+                f"🔄 REFACTOR: Improve {target['name']} ({target['type']})",
+                "🧪 TEST: Run tests again after each small change",
+                "📋 COMMAND: pytest {existing_tests['test_file']} -v",
+                "🚨 FIX: If tests fail, fix code or update tests",
+                "🔄 REPEAT: Small refactor → test → repeat"
+            ]
+        else:
+            # No tests - start with RED phase
+            plan["tdd_steps"] = [
+                f"🔴 WRITE TEST: Create test for {target['name']} first",
+                f"📝 CREATE: test_{target['name'].lower()}.py",
+                "🧪 WRITE: Failing test that defines desired behavior",
+                "📋 RUN: pytest and confirm test FAILS (RED)",
+                f"🟢 IMPLEMENT: Minimal code to make test pass",
+                "📋 RUN: pytest and confirm test PASSES (GREEN)", 
+                f"🔵 REFACTOR: Improve {target['name']} structure",
+                "🧪 TEST: Run pytest after each refactor step",
+                "✅ ENSURE: Tests stay GREEN throughout refactoring"
+            ]
+        
+        return plan
+    
+    def _generate_test_template(self, target: Dict) -> str:
+        """Generate test template for a target"""
+        if target["type"] == "function":
+            return f'''def test_{target["name"].lower()}():
+    """Test {target["name"]} function behavior"""
+    # Arrange
+    # TODO: Set up test data
+    
+    # Act  
+    # TODO: Call {target["name"]}()
+    
+    # Assert
+    # TODO: Verify expected behavior
+    assert False, "TODO: Implement test"
+
+
+def test_{target["name"].lower()}_edge_cases():
+    """Test {target["name"]} edge cases"""
+    # TODO: Test edge cases like empty inputs, None values, etc.
+    pass
+
+
+def test_{target["name"].lower()}_error_handling():
+    """Test {target["name"]} error handling"""
+    # TODO: Test what happens with invalid inputs
+    pass
+'''
+        else:  # class
+            return f'''class Test{target["name"]}:
+    """Test {target["name"]} class behavior"""
+    
+    def setup_method(self):
+        """Set up test fixtures before each test method"""
+        # TODO: Initialize test data
+        pass
+    
+    def test_{target["name"].lower()}_creation(self):
+        """Test {target["name"]} object creation"""
+        # TODO: Test object initialization
+        assert False, "TODO: Implement test"
+    
+    def test_{target["name"].lower()}_main_functionality(self):
+        """Test main functionality of {target["name"]}"""
+        # TODO: Test primary use cases
+        pass
+    
+    def test_{target["name"].lower()}_edge_cases(self):
+        """Test {target["name"]} edge cases"""
+        # TODO: Test boundary conditions
+        pass
+'''
+
 
 # MCP Server Implementation
 # Check if MCP is available
@@ -1459,6 +1679,28 @@ if MCP_AVAILABLE:
                         }
                     },
                     "required": ["source_path"],
+                },
+            ),
+            types.Tool(
+                name="tdd_refactoring_guidance",
+                description="Generate TDD-based refactoring guidance: test first, refactor, test again",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "content": {
+                            "type": "string",
+                            "description": "Python code content to refactor",
+                        },
+                        "function_name": {
+                            "type": "string",
+                            "description": "Specific function/class to refactor (optional)",
+                        },
+                        "test_path": {
+                            "type": "string",
+                            "description": "Path to test directory (optional)",
+                        }
+                    },
+                    "required": ["content"],
                 },
             ),
         ]
@@ -1612,6 +1854,19 @@ if MCP_AVAILABLE:
 
                 return [
                     types.TextContent(type="text", text=json.dumps(coverage_analysis, indent=2))
+                ]
+
+            elif name == "tdd_refactoring_guidance":
+                content = arguments["content"]
+                function_name = arguments.get("function_name")
+                test_path = arguments.get("test_path")
+
+                # Generate TDD refactoring guidance
+                analyzer = EnhancedRefactoringAnalyzer()
+                tdd_guidance = analyzer.generate_tdd_refactoring_guidance(content, function_name, test_path)
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(tdd_guidance, indent=2))
                 ]
 
             else:
