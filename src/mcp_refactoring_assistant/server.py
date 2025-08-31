@@ -79,7 +79,7 @@ class RefactoringGuidance:
 class EnhancedRefactoringAnalyzer:
     """Professional refactoring analyzer using multiple third-party libraries"""
 
-    def __init__(self, project_path: str = None):
+    def __init__(self, project_path: Optional[str] = None):
         self.project_path = project_path or tempfile.mkdtemp()
         self.rope_project = None
 
@@ -373,7 +373,7 @@ class EnhancedRefactoringAnalyzer:
             end_line=end_line,
             content=content,
             variables_used=parameters,
-            variables_modified=list(variables_modified),
+            variables_modified=list(variables_modified) if variables_modified else [],
             suggested_name=suggested_name,
             description=description,
             complexity_score=len(statements) * 0.5,  # Simple complexity metric
@@ -599,7 +599,7 @@ class EnhancedRefactoringAnalyzer:
                                 "Better parameter management",
                             ],
                             precise_steps=[
-                                "1. Group related parameters into a dataclass or dict",
+                                "1. Group related parameters into a pydantic, dataclass or dict",
                                 "2. Consider using **kwargs for optional parameters",
                                 "3. Split function if it does too many things",
                                 "4. Use parameter objects for complex data",
@@ -697,13 +697,21 @@ class EnhancedRefactoringAnalyzer:
 
 
 # MCP Server Implementation
-# Create the server instance
-server = Server("python-refactoring-assistant")
+# Check if MCP is available
+try:
+    import mcp
+    MCP_AVAILABLE = True
+except ImportError:
+    MCP_AVAILABLE = False
 
-@server.list_tools()
-async def handle_list_tools() -> list[types.Tool]:
-    """List available refactoring analysis tools"""
-    return [
+if MCP_AVAILABLE:
+    # Create the server instance
+    server = Server("python-refactoring-assistant")
+
+    @server.list_tools()
+    async def handle_list_tools() -> list[types.Tool]:
+        """List available refactoring analysis tools"""
+        return [
             types.Tool(
                 name="analyze_python_file",
                 description="Analyze Python file for refactoring opportunities with precise guidance",
