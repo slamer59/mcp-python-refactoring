@@ -47,5 +47,8 @@ mcp = ["mcp>=1.0.0"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-packages = ["src"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_refactoring_assistant"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/mcp_refactoring_assistant"]
