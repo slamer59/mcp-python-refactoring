@@ -1,0 +1,13 @@
+{
+  "name": "mcp-refactoring-assistant-test",
+  "version": "1.0.0",
+  "description": "Test client for Python MCP Refactoring Assistant",
+  "type": "module",
+  "scripts": {
+    "test": "bun run test-mcp.js",
+    "server": "python run_mcp_server.py"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0"
+  }
+}

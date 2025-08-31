@@ -1,0 +1,22 @@
+{
+  "name": "python-refactoring-assistant",
+  "version": "1.0.0",
+  "description": "MCP server for Python code refactoring guidance",
+  "main": "src/mcp_refactoring_assistant/server.py",
+  "author": "Your Name",
+  "license": "MIT",
+  "mcp": {
+    "capabilities": {
+      "tools": ["analyze_python_file", "get_extraction_guidance", "find_long_functions"]
+    }
+  },
+  "dependencies": {
+    "rope": ">=1.11.0",
+    "radon": ">=6.0.1", 
+    "vulture": ">=2.10",
+    "jedi": ">=0.19.1",
+    "libcst": ">=1.1.0",
+    "mccabe": ">=0.7.0",
+    "mcp": ">=1.0.0"
+  }
+}
