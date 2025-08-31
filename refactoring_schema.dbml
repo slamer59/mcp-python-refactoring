@@ -1,0 +1,195 @@
+// Database schema for MCP Python Refactoring Assistant
+// Generated for dbdiagram.io visualization
+// Use: https://dbdiagram.io/d
+
+Project refactoring_index {
+  database_type: 'DuckDB'
+  Note: '''
+    # Python Refactoring Analysis Database
+    
+    This schema stores comprehensive refactoring analysis data for Python repositories.
+    Designed for efficient querying of code quality metrics, complexity analysis, 
+    and refactoring opportunities with incremental update capabilities.
+    
+    ## Key Features:
+    - Repository-wide Python code analysis
+    - Function and class complexity tracking  
+    - Automated refactoring issue detection
+    - Incremental update support with content hashing
+    - SQL analytics for code quality insights
+  '''
+}
+
+// Main files table - stores metadata about Python files
+Table refactoring.files {
+  file_id integer [pk, increment, note: 'Auto-incrementing primary key']
+  relative_path varchar [unique, not null, note: 'Path relative to repository root']
+  absolute_path varchar [not null, note: 'Full filesystem path']
+  size_bytes bigint [not null, note: 'File size in bytes']
+  line_count integer [not null, note: 'Total lines in file']
+  last_modified double [not null, note: 'Unix timestamp of last modification']
+  content_hash varchar [not null, note: 'MD5 hash for incremental update detection']
+  created_at timestamp [default: `now()`, note: 'When record was created']
+  
+  Note: 'Central table storing metadata for all analyzed Python files'
+}
+
+// Functions table - stores function-level analysis
+Table refactoring.functions {
+  function_id integer [pk, increment, note: 'Auto-incrementing primary key'] 
+  file_id integer [ref: > refactoring.files.file_id, not null, note: 'References parent file']
+  name varchar [not null, note: 'Function name']
+  line_start integer [not null, note: 'Starting line number']
+  line_end integer [not null, note: 'Ending line number']
+  cyclomatic_complexity integer [not null, note: 'McCabe cyclomatic complexity score']
+  cognitive_complexity integer [not null, note: 'Cognitive complexity score']  
+  parameter_count integer [not null, note: 'Number of function parameters']
+  return_count integer [not null, note: 'Number of return statements']
+  has_docstring boolean [not null, note: 'Whether function has docstring']
+  created_at timestamp [default: `now()`, note: 'When record was created']
+  
+  Note: 'Function-level metrics and complexity analysis'
+}
+
+// Classes table - stores class-level analysis  
+Table refactoring.classes {
+  class_id integer [pk, increment, note: 'Auto-incrementing primary key']
+  file_id integer [ref: > refactoring.files.file_id, not null, note: 'References parent file'] 
+  name varchar [not null, note: 'Class name']
+  line_start integer [not null, note: 'Starting line number']
+  line_end integer [not null, note: 'Ending line number']
+  method_count integer [not null, note: 'Number of methods in class']
+  has_docstring boolean [not null, note: 'Whether class has docstring']
+  created_at timestamp [default: `now()`, note: 'When record was created']
+  
+  Note: 'Class-level metrics and structure analysis'
+}
+
+// Issues table - stores detected refactoring opportunities
+Table refactoring.issues {
+  issue_id integer [pk, increment, note: 'Auto-incrementing primary key']
+  file_id integer [ref: > refactoring.files.file_id, not null, note: 'References parent file']
+  function_id integer [ref: > refactoring.functions.function_id, null, note: 'References specific function if applicable']
+  issue_type varchar [not null, note: 'Type: high_complexity, extract_function, dead_code, etc.']
+  severity varchar [not null, note: 'Severity: critical, high, medium, low']
+  description text [not null, note: 'Human-readable description of the issue']
+  line_number integer [null, note: 'Specific line number if applicable']
+  estimated_effort_hours double [not null, note: 'Estimated hours to fix the issue']
+  created_at timestamp [default: `now()`, note: 'When issue was detected']
+  
+  Note: 'Detected refactoring issues with priority and effort estimates'
+}
+
+// Reference relationships between tables
+
+Note performance_indexes {
+  '''
+  ## Performance Indexes
+  
+  ### files table:
+  - PRIMARY KEY on file_id
+  - UNIQUE INDEX on relative_path  
+  - INDEX on last_modified (for incremental updates)
+  - INDEX on content_hash (for change detection)
+  
+  ### functions table:
+  - PRIMARY KEY on function_id
+  - FOREIGN KEY INDEX on file_id
+  - INDEX on cyclomatic_complexity (for complexity queries)
+  - INDEX on (file_id, name) for function lookups
+  
+  ### classes table:  
+  - PRIMARY KEY on class_id
+  - FOREIGN KEY INDEX on file_id
+  - INDEX on method_count (for class size analysis)
+  
+  ### issues table:
+  - PRIMARY KEY on issue_id  
+  - FOREIGN KEY INDEX on file_id
+  - FOREIGN KEY INDEX on function_id
+  - INDEX on (issue_type, severity) for filtering
+  - INDEX on estimated_effort_hours (for prioritization)
+  '''
+}
+
+Note query_patterns {
+  '''
+  ## Common Query Patterns
+  
+  ### High Complexity Analysis:
+  ```sql
+  SELECT f.relative_path, fn.name, fn.cyclomatic_complexity
+  FROM refactoring.functions fn
+  JOIN refactoring.files f ON fn.file_id = f.file_id  
+  WHERE fn.cyclomatic_complexity > 10
+  ORDER BY fn.cyclomatic_complexity DESC
+  ```
+  
+  ### Large Files Detection:
+  ```sql
+  SELECT relative_path, line_count, size_bytes
+  FROM refactoring.files
+  WHERE line_count > 500 OR size_bytes > 50000
+  ORDER BY line_count DESC
+  ```
+  
+  ### Dead Code Candidates:
+  ```sql  
+  SELECT f.relative_path, i.description, i.line_number
+  FROM refactoring.issues i
+  JOIN refactoring.files f ON i.file_id = f.file_id
+  WHERE i.issue_type = 'dead_code'
+  ORDER BY f.relative_path, i.line_number
+  ```
+  
+  ### Missing Tests Priority:
+  ```sql
+  SELECT f.relative_path, fn.name, fn.cyclomatic_complexity
+  FROM refactoring.functions fn  
+  JOIN refactoring.files f ON fn.file_id = f.file_id
+  WHERE f.relative_path NOT LIKE '%test%'
+  AND fn.cyclomatic_complexity > 5
+  ORDER BY fn.cyclomatic_complexity DESC
+  ```
+  
+  ### Overall Issue Priority:
+  ```sql
+  SELECT f.relative_path, i.issue_type, i.severity, 
+         i.estimated_effort_hours,
+         CASE 
+           WHEN i.severity = 'critical' THEN 4
+           WHEN i.severity = 'high' THEN 3  
+           WHEN i.severity = 'medium' THEN 2
+           ELSE 1
+         END as priority_score
+  FROM refactoring.issues i
+  JOIN refactoring.files f ON i.file_id = f.file_id
+  ORDER BY priority_score DESC, estimated_effort_hours DESC
+  ```
+  '''
+}
+
+Note entity_relationships {
+  '''
+  ## Entity Relationships
+  
+  ### One-to-Many Relationships:
+  - files (1) → functions (N): One file contains multiple functions
+  - files (1) → classes (N): One file contains multiple classes  
+  - files (1) → issues (N): One file can have multiple refactoring issues
+  - functions (1) → issues (N): One function can have multiple issues
+  
+  ### Key Constraints:
+  - All foreign keys use CASCADE DELETE for data consistency
+  - relative_path is unique across files table
+  - Combination of (file_id, name) should be unique for functions/classes
+  - issue_type follows controlled vocabulary
+  - severity follows controlled vocabulary (critical, high, medium, low)
+  
+  ### Data Integrity:
+  - Files are the root entity - deleting a file cascades to all related data
+  - Functions and classes are optional (files may contain only top-level code)
+  - Issues can reference either file-level or function-level problems
+  - Content hashes enable efficient incremental updates
+  '''
+}
