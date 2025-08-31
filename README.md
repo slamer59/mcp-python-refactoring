@@ -1,4 +1,4 @@
-# Python Refactoring Assistant MCP Server
+# MCP Python Refactoring
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
@@ -37,15 +37,15 @@ This tool integrates with AI coding assistants (Claude, ChatGPT, Cursor, etc.) t
 
 ```bash
 # Install and run directly from GitHub
-uvx --from git+https://github.com/slamer59/mcp-refactoring-assistant.git mcp-refactoring-assistant
+uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring
 ```
 
 ### Development Installation
 
 ```bash
 # Clone and setup for development
-git clone https://github.com/slamer59/mcp-refactoring-assistant.git
-cd mcp-refactoring-assistant
+git clone https://github.com/slamer59/mcp-python-refactoring.git
+cd mcp-python-refactoring
 uv sync
 ```
 
@@ -377,7 +377,7 @@ For most terminal-based MCP clients:
 
 ```bash
 # With uvx
-client-name --mcp-server "uvx --from git+https://github.com/slamer59/mcp-refactoring-assistant.git mcp-refactoring-assistant"
+client-name --mcp-server "uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring"
 
 # With local installation  
 client-name --mcp-server "python /path/to/mcp_server.py"

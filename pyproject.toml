@@ -1,5 +1,5 @@
 [project]
-name = "mcp-refactoring-assistant"
+name = "mcp-python-refactoring"
 version = "0.1.0"
 description = "MCP tool to guide Python code refactoring without automatic changes"
 readme = "README.md"
@@ -31,12 +31,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/slamer59/mcp-refactoring-assistant"
-Repository = "https://github.com/slamer59/mcp-refactoring-assistant"
-Issues = "https://github.com/slamer59/mcp-refactoring-assistant/issues"
+Homepage = "https://github.com/slamer59/mcp-python-refactoring"
+Repository = "https://github.com/slamer59/mcp-python-refactoring"
+Issues = "https://github.com/slamer59/mcp-python-refactoring/issues"
 
 [project.scripts]
-mcp-refactoring-assistant = "mcp_refactoring_assistant.mcp_server:main"
+mcp-python-refactoring = "mcp_refactoring_assistant.mcp_server:main"
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.0.0"]
