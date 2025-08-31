@@ -4,6 +4,20 @@ version = "0.1.0"
 description = "MCP tool to guide Python code refactoring without automatic changes"
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    {name = "slamer59", email = "your.email@example.com"}
+]
+license = {text = "MIT"}
+keywords = ["refactoring", "mcp", "python", "code-analysis", "ai-assistant"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = [
     "rope>=1.11.0",
     "radon>=6.0.1",
@@ -15,6 +29,14 @@ dependencies = [
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/slamer59/mcp-refactoring-assistant"
+Repository = "https://github.com/slamer59/mcp-refactoring-assistant"
+Issues = "https://github.com/slamer59/mcp-refactoring-assistant/issues"
+
+[project.scripts]
+mcp-refactoring-assistant = "mcp_refactoring_assistant.mcp_server:main"
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.0.0"]

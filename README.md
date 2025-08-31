@@ -1,16 +1,20 @@
 # Python Refactoring Assistant MCP Server
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+
 **A Model Context Protocol (MCP) server that analyzes Python code and provides guided refactoring suggestions without automatically modifying your code.**
 
 This tool integrates with AI coding assistants (Claude, ChatGPT, Cursor, etc.) to provide intelligent refactoring guidance. Instead of making automatic code changes, it gives you precise instructions on how to improve your Python code, acting as your refactoring mentor.
 
-## 🎯 What This Tool Does
+## What This Tool Does
 
 **For AI Coding Assistants:**
 - Provides structured JSON responses with refactoring opportunities
 - Identifies long functions, high complexity code, and dead code
 - Gives precise line numbers for extract method refactoring
-- Uses professional tools (Rope, Radon, Vulture) for analysis
+- Uses professional tools for comprehensive analysis
 
 **For Developers:**
 - Get step-by-step refactoring instructions
@@ -18,7 +22,16 @@ This tool integrates with AI coding assistants (Claude, ChatGPT, Cursor, etc.) t
 - Learn refactoring patterns through guided practice
 - Improve code quality systematically
 
-## 🚀 Installation
+## How It Differs
+
+| Approach | This Tool | Traditional Refactoring Tools |
+|----------|-----------|-------------------------------|
+| Integration | Works with any LLM/AI assistant | IDE-specific or standalone |
+| Guidance | Step-by-step instructions with line numbers | Automatic changes only |
+| Learning | Educational approach teaches patterns | No learning component |
+| Control | Developer maintains full control | Tool makes all decisions |
+
+## Installation
 
 ### Quick Start with uvx (Recommended)
 
@@ -39,16 +52,16 @@ uv sync
 ### Manual Installation
 
 ```bash
-# With uv
-uv add rope radon vulture jedi libcst mccabe mcp fastapi uvicorn
+# Core dependencies
+uv add rope radon vulture jedi libcst mccabe mcp
 
-# With pip
-pip install rope radon vulture jedi libcst mccabe mcp fastapi uvicorn
+# SSE support (optional)
+uv add fastapi uvicorn
 ```
 
-## 🔧 Available MCP Tools
+## Available MCP Tools
 
-### 🎯 Unified Server
+### Unified Server
 
 **Single Server** (`mcp_server.py`): Both guide-only and apply-changes modes in one server
 
@@ -56,9 +69,9 @@ pip install rope radon vulture jedi libcst mccabe mcp fastapi uvicorn
 - **stdin/stdout**: `python mcp_server.py` (default)
 - **SSE (Server-Sent Events)**: `python mcp_server.py --sse [port]` (web-based)
 
-### Available Tools
+### Tools
 
-### 1. `analyze_python_code`
+#### 1. `analyze_python_code`
 Comprehensive analysis with optional automatic refactoring.
 
 **Parameters:**
@@ -70,7 +83,7 @@ Comprehensive analysis with optional automatic refactoring.
 **Mode: guide_only** - Returns instructions only
 **Mode: apply_changes** - Returns modified code
 
-### 2. `extract_function_hybrid`
+#### 2. `extract_function`
 Extract specific functions with guide or apply mode.
 
 **Parameters:**
@@ -80,7 +93,7 @@ Extract specific functions with guide or apply mode.
 - `start_line`, `end_line` (for apply_changes): Exact extraction range
 - `new_function_name` (for apply_changes): Name for extracted function
 
-### 3. `quick_analyze`
+#### 3. `quick_analyze`
 Fast analysis for immediate refactoring opportunities.
 
 **Parameters:**
@@ -88,7 +101,29 @@ Fast analysis for immediate refactoring opportunities.
 
 **Returns:** Quick summary of long functions and parameter issues
 
-## 🧪 Testing and Debugging
+## Analysis Capabilities
+
+**Code Quality Issues Detected:**
+- Functions over 20 lines (extract method opportunities)
+- High cyclomatic complexity (>10)
+- Functions with too many parameters (>5)
+- Dead/unused code (consolidated suggestions)
+- Low maintainability index (<20)
+
+**Additional Analysis Tools:**
+- **Security Analysis**: Vulnerability detection and security best practices
+- **Performance Analysis**: Bottleneck identification and optimization suggestions
+- **Type Hints**: Missing type annotation detection
+- **Documentation**: Docstring coverage and quality assessment
+
+**Professional Tools Used:**
+- **[Rope](https://github.com/python-rope/rope)**: Professional refactoring analysis
+- **[Radon](https://github.com/rubik/radon)**: Code complexity metrics
+- **[Vulture](https://github.com/jendrikseipp/vulture)**: Dead code detection
+- **[Jedi](https://github.com/davidhalter/jedi)**: Semantic code analysis
+- **[LibCST](https://github.com/Instagram/LibCST)**: Syntax tree manipulation
+
+## Testing and Debugging
 
 ### Test with MCP Inspector
 
@@ -160,23 +195,27 @@ print('Analyzer working')
 "
 ```
 
-## 📊 Example Usage
+## Example Usage
 
-### With AI Coding Assistants
+### Educational Workflow
+1. AI assistant calls `analyze_python_code` with `guide_only` mode
+2. Tool returns structured suggestions with precise steps
+3. Developer follows step-by-step instructions
+4. Developer learns refactoring patterns through practice
 
-1. **AI asks:** "Find long functions in this code"
-2. **MCP responds:** JSON with precise function locations
-3. **AI guides:** "Cut lines 15-23, create function `validate_input()`, replace with call"
-4. **Developer follows:** Exact cut/paste instructions
-5. **Result:** Code refactored without automatic changes
+### Productivity Workflow  
+1. AI assistant calls `analyze_python_code` with `apply_changes` mode
+2. Tool returns modified code with applied refactorings
+3. Developer reviews changes and applies as needed
+4. Faster refactoring for experienced developers
 
-### Sample MCP Response
+### Sample MCP Response (Guide Mode)
 
 ```json
 {
   "analysis_summary": {
-    "total_issues_found": 3,
-    "medium_priority": 2,
+    "total_issues_found": 2,
+    "medium_priority": 1,
     "low_priority": 1
   },
   "refactoring_guidance": [
@@ -185,19 +224,30 @@ print('Analyzer working')
       "location": "Function 'process_data' lines 45-78",
       "description": "Long function (34 lines) with extractable blocks",
       "precise_steps": [
-        "📋 EXTRACTION PLAN:",
-        "✂️ SELECT lines 45-52 (validation block)",
-        "📝 CREATE function: validate_input(data)",
-        "🔄 REPLACE with: is_valid = validate_input(data)"
+        "SELECT lines 45-52 (validation block)",
+        "CREATE function: validate_input(data)",
+        "REPLACE with: is_valid = validate_input(data)"
+      ]
+    },
+    {
+      "issue_type": "dead_code", 
+      "location": "Multiple locations (6 items)",
+      "description": "6 unused items found",
+      "precise_steps": [
+        "Review all unused items listed below:",
+        "• Line 11: Unused import 're'",
+        "• Line 12: Unused import 'Optional'",
+        "Verify each item is truly unused",
+        "Remove confirmed unused code"
       ]
     }
   ]
 }
 ```
 
-## 🔌 Integration with Coding Assistants
+## Integration with Coding Assistants
 
-### Claude Desktop/CLI
+### Claude Code/CLI
 Add to your MCP configuration:
 
 ```json
@@ -211,29 +261,163 @@ Add to your MCP configuration:
 }
 ```
 
-### Cursor/VSCode
-Use with MCP-compatible extensions that support custom servers.
+### Claude Desktop
+Add to `claude_desktop_config.json`:
 
-### Direct Integration
-The server works with any MCP-compatible client via stdin/stdout.
+```json
+{
+  "mcpServers": {
+    "python-refactoring": {
+      "command": "python",
+      "args": ["path/to/mcp_server.py"]
+    }
+  }
+}
+```
 
-## 🛠️ Analysis Capabilities
+### Cline (VSCode Extension)
+In VSCode settings or `.vscode/settings.json`:
 
-**Code Quality Issues Detected:**
-- Functions over 20 lines (extract method opportunities)
-- High cyclomatic complexity (>10)
-- Functions with too many parameters (>5)
-- Dead/unused code
-- Low maintainability index (<20)
+```json
+{
+  "cline.mcpServers": {
+    "python-refactoring": {
+      "command": "python",
+      "args": ["path/to/mcp_server.py"]
+    }
+  }
+}
+```
 
-**Professional Tools Used:**
-- **Rope**: Professional refactoring analysis
-- **Radon**: Code complexity metrics
-- **Vulture**: Dead code detection
-- **Jedi**: Semantic code analysis
-- **LibCST**: Syntax tree manipulation
+### Cursor
+Add to Cursor's MCP configuration:
 
-## 🤝 How It Works
+```json
+{
+  "mcpServers": {
+    "python-refactoring": {
+      "command": "python",
+      "args": ["path/to/mcp_server.py"]
+    }
+  }
+}
+```
+
+### Continue (VSCode Extension)
+In `~/.continue/config.json`:
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "python-refactoring",
+      "command": "python",
+      "args": ["path/to/mcp_server.py"]
+    }
+  ]
+}
+```
+
+### Windsurf
+Add to Windsurf MCP configuration:
+
+```json
+{
+  "servers": {
+    "python-refactoring": {
+      "command": "python",
+      "args": ["path/to/mcp_server.py"]
+    }
+  }
+}
+```
+
+### Aider
+Use with MCP bridge or direct integration:
+
+```bash
+aider --mcp-server "python path/to/mcp_server.py"
+```
+
+### OpenHands (formerly OpenDevin)
+In OpenHands configuration:
+
+```yaml
+mcp_servers:
+  python-refactoring:
+    command: python
+    args: ["path/to/mcp_server.py"]
+```
+
+### Roo-Code
+Add to Roo-Code's MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "python-refactoring": {
+      "command": "python",
+      "args": ["path/to/mcp_server.py"]
+    }
+  }
+}
+```
+
+### Codex CLI
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.python-refactoring]
+command = "python"
+args = ["path/to/mcp_server.py"]
+```
+
+### Terminal-based clients
+For most terminal-based MCP clients:
+
+```bash
+# With uvx
+client-name --mcp-server "uvx --from git+https://github.com/slamer59/mcp-refactoring-assistant.git mcp-refactoring-assistant"
+
+# With local installation  
+client-name --mcp-server "python /path/to/mcp_server.py"
+```
+
+### SSE Mode (Web-based clients)
+For web-based clients that support SSE connections:
+
+1. Start the server in SSE mode:
+```bash
+python mcp_server.py --sse 3001
+```
+
+2. Configure your client to connect to:
+```
+http://localhost:3001/sse
+```
+
+### Using with mcpo (ChatGPT and others)
+For clients without native MCP support:
+
+```bash
+# Install mcpo
+pip install mcpo
+
+# Bridge MCP to OpenAI-compatible API
+mcpo --mcp-server "python path/to/mcp_server.py" --port 8080
+```
+
+Then configure your client to use `http://localhost:8080` as API endpoint.
+
+### Notes
+
+- Replace `path/to/mcp_server.py` with the actual absolute path to your server
+- For uvx installation, use the full uvx command instead of local paths
+- Some clients may require additional configuration or have different syntax
+- Always use absolute paths to avoid configuration issues
+- Test the connection with the client's MCP debugging tools if available
+
+## How It Works
 
 1. **Analysis**: Server analyzes Python code using multiple professional tools
 2. **Detection**: Identifies specific refactoring opportunities with metrics
@@ -241,66 +425,15 @@ The server works with any MCP-compatible client via stdin/stdout.
 4. **Integration**: AI assistant interprets results and guides developer
 5. **Control**: Developer maintains full control over all code changes
 
-## 📝 Example Sessions
+## User Feedback
 
-### 📋 Guide Mode (Default - Recommended)
+Users report significant improvements in code quality understanding and refactoring skills when using this tool with AI assistants. The guided approach helps developers learn refactoring patterns while maintaining control over code changes.
 
-```bash
-# AI calls with guide mode
-{
-  "tool": "analyze_python_code",
-  "arguments": {"content": "...", "mode": "guide_only"}
-}
+*"Finally, a tool that teaches me refactoring instead of doing it for me"*  
+*"The precise line numbers make it easy to follow the suggestions"*  
+*"Game changer for working with legacy code"*
 
-# MCP responds with instructions
-{
-  "mode": "guide_only",
-  "analysis_summary": {"total_issues_found": 2},
-  "refactoring_guidance": [
-    {
-      "issue_type": "extract_function",
-      "location": "Function 'process_data' lines 15-45",
-      "precise_steps": [
-        "✂️ SELECT lines 15-23 (validation block)",
-        "📝 CREATE function: validate_input(data)",
-        "🔄 REPLACE with: is_valid = validate_input(data)"
-      ]
-    }
-  ]
-}
-
-# AI guides developer step-by-step
-"Cut lines 15-23, create validate_input() function, replace with function call."
-```
-
-### ⚡ Apply Mode (Auto-Refactoring)
-
-```bash
-# AI calls with apply mode
-{
-  "tool": "analyze_python_code", 
-  "arguments": {"content": "...", "mode": "apply_changes"}
-}
-
-# MCP responds with modified code
-{
-  "mode": "apply_changes",
-  "changes_applied": 1,
-  "new_code": "def validate_input(data):\n    # extracted code\n\ndef process_data(data):\n    is_valid = validate_input(data)\n    # rest of function",
-  "applied_extractions": [
-    {
-      "function_name": "validate_input",
-      "location": "lines 15-23",
-      "summary": "Extracted validation logic"
-    }
-  ]
-}
-
-# AI shows result to developer
-"I've automatically extracted validation logic into validate_input(). Here's the refactored code."
-```
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 **MCP Connection Issues:**
 - Ensure all dependencies installed: `uv sync`
@@ -313,14 +446,21 @@ The server works with any MCP-compatible client via stdin/stdout.
 - Verify example file exists: `ls examples/`
 
 **Tool Responses Empty:**
-- Increase line threshold for testing
-- Check code has actual functions to analyze
+- Check if code has functions to analyze (minimum complexity threshold)
+- Increase line threshold for testing: `"line_threshold": 10`
 - Verify file syntax is valid Python
+- Ensure virtual environment is activated
 
-## 📄 License
+**SSE Connection Issues:**
+- Verify port is not in use: `netstat -an | grep 3001`
+- Check firewall settings for local connections
+- Ensure FastAPI and Uvicorn are installed: `uv add fastapi uvicorn`
+
+**Performance Issues:**
+- For large codebases (>100 files), consider using file-specific analysis
+- Increase timeout settings in MCP client configuration
+- Use `quick_analyze` for immediate feedback on specific functions
+
+## License
 
 MIT License - Free for personal and commercial use.
-
----
-
-**Ready to improve your Python code quality with AI-guided refactoring!** 🚀
