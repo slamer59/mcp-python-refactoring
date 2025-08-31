@@ -40,6 +40,15 @@ This tool integrates with AI coding assistants (Claude, ChatGPT, Cursor, etc.) t
 uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring
 ```
 
+### Add to Claude Code (One Command)
+
+```bash
+# Add to Claude Code MCP configuration
+claude-code mcp add mcp-python-refactoring uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring
+```
+
+After running this command, restart Claude Desktop and the Python refactoring tools will be available in your Claude conversations!
+
 ### Development Installation
 
 ```bash
@@ -109,14 +118,23 @@ Advanced type checking and quality analysis using pyrefly.
 
 **Returns:** Detailed type errors, quality issues, and improvement suggestions
 
+#### 5. `get_server_capabilities` (Internal)
+Returns server capabilities and available analysis tools.
+
+**Returns:** List of available tools: rope, radon, vulture, jedi, libcst, pyrefly, mccabe, complexipy
+
 ## Analysis Capabilities
 
 **Code Quality Issues Detected:**
 - Functions over 20 lines (extract method opportunities)
-- High cyclomatic complexity (>10)
+- High cyclomatic complexity (>10) using McCabe analysis
+- High cognitive complexity (>15) using Complexipy analysis
 - Functions with too many parameters (>5)
-- Dead/unused code (consolidated suggestions)
-- Low maintainability index (<20)
+- Dead/unused code (consolidated suggestions) via Vulture
+- Low maintainability index (<20) using Radon metrics
+- Type annotation problems detected by Pyrefly
+- Large files (>500 lines) with module splitting recommendations
+- Files with too many imports (>20) suggesting restructuring
 
 **Additional Analysis Tools:**
 - **Security Analysis**: Vulnerability detection and security best practices
@@ -125,12 +143,15 @@ Advanced type checking and quality analysis using pyrefly.
 - **Documentation**: Docstring coverage and quality assessment
 
 **Professional Tools Used:**
-- **[Rope](https://github.com/python-rope/rope)**: Professional refactoring analysis
-- **[Radon](https://github.com/rubik/radon)**: Code complexity metrics
-- **[Vulture](https://github.com/jendrikseipp/vulture)**: Dead code detection
-- **[Jedi](https://github.com/davidhalter/jedi)**: Semantic code analysis
-- **[LibCST](https://github.com/Instagram/LibCST)**: Syntax tree manipulation
+- **[Rope](https://github.com/python-rope/rope)**: Professional refactoring analysis and extract method detection
+- **[Radon](https://github.com/rubik/radon)**: Code complexity metrics (cyclomatic, maintainability index)
+- **[Vulture](https://github.com/jendrikseipp/vulture)**: Dead code detection and unused import analysis
+- **[Jedi](https://github.com/davidhalter/jedi)**: Semantic code analysis and variable tracking
+- **[LibCST](https://github.com/Instagram/LibCST)**: Syntax tree manipulation for precise code analysis
 - **[Pyrefly](https://github.com/Khronos16/pyrefly)**: Advanced type checking and quality analysis
+- **[McCabe](https://github.com/PyCQA/mccabe)**: Cyclomatic complexity measurement
+- **[Complexipy](https://github.com/rohaquinlop/complexipy)**: Advanced complexity analysis and cognitive complexity
+- **Built-in File Analysis**: File size analysis and module splitting recommendations
 
 ## Testing and Debugging
 
