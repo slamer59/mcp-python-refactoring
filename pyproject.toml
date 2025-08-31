@@ -12,6 +12,8 @@ dependencies = [
     "libcst>=1.1.0",
     "mccabe>=0.7.0",
     "mcp>=1.13.1",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
 ]
 
 [project.optional-dependencies]

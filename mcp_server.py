@@ -11,10 +11,11 @@ import ast
 import re
 from typing import Any, Dict, List, Optional
 
-# Import MCP
+# Import MCP with SSE support
 try:
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
+    from mcp.server.sse import SseServerTransport
     from mcp import types
     MCP_AVAILABLE = True
 except ImportError as e:
@@ -460,14 +461,40 @@ if MCP_AVAILABLE:
         """Launch the unified MCP server"""
         print("🚀 Starting Python Refactoring MCP Server", file=sys.stderr)
         print("📡 Modes: guide_only (default) | apply_changes", file=sys.stderr)
-        print("🔄 Listening on stdin/stdout", file=sys.stderr)
         
-        async with stdio_server() as (read_stream, write_stream):
-            await server.run(
-                read_stream,
-                write_stream,
-                server.create_initialization_options()
+        # Check for SSE mode via command line args
+        if len(sys.argv) > 1 and sys.argv[1] == "--sse":
+            port = int(sys.argv[2]) if len(sys.argv) > 2 else 3001
+            print(f"🌐 Starting SSE server on port {port}", file=sys.stderr)
+            
+            transport = SseServerTransport("/messages")
+            
+            import uvicorn
+            from fastapi import FastAPI
+            from fastapi.middleware.cors import CORSMiddleware
+            
+            app = FastAPI()
+            app.add_middleware(
+                CORSMiddleware,
+                allow_origins=["*"],
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
             )
+            
+            # Mount the SSE transport
+            app.mount("/", transport.create_app())
+            
+            # Run the server
+            uvicorn.run(app, host="0.0.0.0", port=port)
+        else:
+            print("🔄 Listening on stdin/stdout", file=sys.stderr)
+            async with stdio_server() as (read_stream, write_stream):
+                await server.run(
+                    read_stream,
+                    write_stream,
+                    server.create_initialization_options()
+                )
 
 else:
     def main():

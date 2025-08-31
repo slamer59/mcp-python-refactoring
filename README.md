@@ -40,10 +40,10 @@ uv sync
 
 ```bash
 # With uv
-uv add rope radon vulture jedi libcst mccabe mcp
+uv add rope radon vulture jedi libcst mccabe mcp fastapi uvicorn
 
 # With pip
-pip install rope radon vulture jedi libcst mccabe mcp
+pip install rope radon vulture jedi libcst mccabe mcp fastapi uvicorn
 ```
 
 ## 🔧 Available MCP Tools
@@ -51,6 +51,10 @@ pip install rope radon vulture jedi libcst mccabe mcp
 ### 🎯 Unified Server
 
 **Single Server** (`mcp_server.py`): Both guide-only and apply-changes modes in one server
+
+**Connection Options**:
+- **stdin/stdout**: `python mcp_server.py` (default)
+- **SSE (Server-Sent Events)**: `python mcp_server.py --sse [port]` (web-based)
 
 ### Available Tools
 
