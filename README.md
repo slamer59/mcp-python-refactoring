@@ -44,7 +44,7 @@ uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python
 
 ```bash
 # Add to Claude Code MCP configuration
-claude-code mcp add mcp-python-refactoring uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring
+claude code mcp add mcp-python-refactoring "uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring"
 ```
 
 After running this command, restart Claude Desktop and the Python refactoring tools will be available in your Claude conversations!
