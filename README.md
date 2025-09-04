@@ -404,7 +404,7 @@ For most terminal-based MCP clients:
 
 ```bash
 # With uvx
-client-name --mcp-server "uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git refactor-mcp server"
+client-name --mcp-server "uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git python-refactor server"
 
 # With local installation  
 client-name --mcp-server "python -m mcp_refactoring_assistant server"
