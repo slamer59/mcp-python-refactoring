@@ -33,10 +33,9 @@ dependencies = [
     "pytest>=8.4.1",
     "duckdb>=1.3.2",
     "pydantic>=2.11.7",
-    # CLI/TUI dependencies
+    # CLI dependencies
     "click>=8.0.0",
     "rich>=13.0.0",
-    "textual>=0.40.0",
     "coverage>=7.0.0",
     "psutil>=5.9.0",
     "pytest-xdist>=3.8.0",
@@ -49,11 +48,10 @@ Issues = "https://github.com/slamer59/mcp-python-refactoring/issues"
 
 [project.scripts]
 # Commandes principales
-refactor-cli = "mcp_refactoring_assistant.cli:cli"
-refactor-tui = "mcp_refactoring_assistant.tui:main"
-refactor-mcp = "mcp_refactoring_assistant.server:main"
+python-refactor-cli = "mcp_refactoring_assistant.cli:cli"
+python-refactor = "mcp_refactoring_assistant.__main__:main"
 # Alias pour compatibilité
-mcp-python-refactoring = "mcp_refactoring_assistant.server:main"
+mcp-python-refactoring = "mcp_refactoring_assistant.__main__:main"
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.0.0"]
@@ -61,16 +59,12 @@ cli = [
     "click>=8.0.0",
     "rich>=13.0.0",
 ]
-tui = [
-    "textual>=0.40.0",
-    "rich>=13.0.0",
-]
 analysis = [
     "coverage>=7.0.0",
     "duckdb>=1.3.2",
 ]
 all = [
-    "mcp-python-refactoring[mcp,cli,tui,analysis]",
+    "mcp-python-refactoring[mcp,cli,analysis]",
 ]
 
 [build-system]

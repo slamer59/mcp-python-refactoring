@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced Python Refactoring CLI/TUI Tool
+Enhanced Python Refactoring CLI Tool
 Supports both MCP server mode and standalone operation
 """
 
@@ -29,7 +29,7 @@ from .models import RefactoringGuidance
 console = Console()
 
 class RefactoringCLI:
-    """Enhanced CLI/TUI for Python refactoring analysis"""
+    """Enhanced CLI for Python refactoring analysis"""
     
     def __init__(self):
         self.analyzer = EnhancedRefactoringAnalyzer()
@@ -43,7 +43,7 @@ class RefactoringCLI:
 ║              🐍 Python Refactoring Assistant 🔧              ║
 ║                                                               ║
 ║  Comprehensive code analysis • Repository indexing           ║
-║  TDD guidance • Coverage analysis • Quality insights         ║
+║  Coverage analysis • Quality insights • MCP Server           ║
 ╚═══════════════════════════════════════════════════════════════╝
         """
         self.console.print(banner, style="bold cyan")
@@ -528,20 +528,6 @@ def server(ctx):
     cli_tool.start_mcp_server_mode()
 
 
-@cli.command()
-@click.pass_context
-def tui(ctx):
-    """🖥️ Start interactive TUI mode"""
-    
-    cli_tool = ctx.obj['cli_tool']
-    cli_tool.display_banner()
-    
-    console.print("🚧 [yellow]TUI mode coming soon![/yellow]")
-    console.print("💡 Use the CLI commands for now:")
-    console.print("   • refactor analyze <file>")
-    console.print("   • refactor index <repo>") 
-    console.print("   • refactor query")
-    console.print("   • refactor server")
 
 
 if __name__ == '__main__':

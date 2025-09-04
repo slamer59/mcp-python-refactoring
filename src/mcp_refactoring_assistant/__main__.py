@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Main entry point for Python Refactoring Assistant
-Supports multiple modes: CLI, TUI, and MCP Server
+Supports multiple modes: CLI and MCP Server
 """
 
 import sys
@@ -35,16 +35,6 @@ def main():
                 asyncio.run(mcp_main())
             except ImportError:
                 print("❌ MCP not available. Install with: pip install mcp", file=sys.stderr)
-                sys.exit(1)
-            return
-            
-        elif mode == "tui":
-            # Explicit TUI mode
-            try:
-                from .tui import main as tui_main
-                tui_main()
-            except ImportError:
-                print("❌ Textual not available. Install with: pip install textual", file=sys.stderr)
                 sys.exit(1)
             return
             

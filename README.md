@@ -24,27 +24,27 @@ This tool integrates with AI coding assistants (Claude, ChatGPT, Cursor, etc.) t
 
 ## How It Differs
 
-| Approach | This Tool | Traditional Refactoring Tools |
-|----------|-----------|-------------------------------|
-| Integration | Works with any LLM/AI assistant | IDE-specific or standalone |
-| Guidance | Step-by-step instructions with line numbers | Automatic changes only |
-| Learning | Educational approach teaches patterns | No learning component |
-| Control | Developer maintains full control | Tool makes all decisions |
+| Approach    | This Tool                                   | Traditional Refactoring Tools |
+| ----------- | ------------------------------------------- | ----------------------------- |
+| Integration | Works with any LLM/AI assistant             | IDE-specific or standalone    |
+| Guidance    | Step-by-step instructions with line numbers | Automatic changes only        |
+| Learning    | Educational approach teaches patterns       | No learning component         |
+| Control     | Developer maintains full control            | Tool makes all decisions      |
 
 ## Installation
 
 ### Quick Start with uvx (Recommended)
 
 ```bash
-# Install and run directly from GitHub
-uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring
+# Install and run MCP server directly from GitHub
+uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git python-refactor server
 ```
 
 ### Add to Claude Code (One Command)
 
 ```bash
 # Add to Claude Code MCP configuration
-claude code mcp add mcp-python-refactoring "uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring"
+claude-code mcp add mcp-python-refactoring uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git python-refactor server
 ```
 
 After running this command, restart Claude Desktop and the Python refactoring tools will be available in your Claude conversations!
@@ -56,16 +56,13 @@ After running this command, restart Claude Desktop and the Python refactoring to
 git clone https://github.com/slamer59/mcp-python-refactoring.git
 cd mcp-python-refactoring
 uv sync
-```
 
-### Manual Installation
+# Run MCP server locally
+python -m mcp_refactoring_assistant server
 
-```bash
-# Core dependencies
-uv add rope radon vulture jedi libcst mccabe mcp
-
-# SSE support (optional)
-uv add fastapi uvicorn
+# Or use the entry point after installation
+pip install -e .
+python-refactor server
 ```
 
 ## Available MCP Tools
@@ -407,10 +404,10 @@ For most terminal-based MCP clients:
 
 ```bash
 # With uvx
-client-name --mcp-server "uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git mcp-python-refactoring"
+client-name --mcp-server "uvx --from git+https://github.com/slamer59/mcp-python-refactoring.git refactor-mcp server"
 
 # With local installation  
-client-name --mcp-server "python /path/to/mcp_server.py"
+client-name --mcp-server "python -m mcp_refactoring_assistant server"
 ```
 
 ### SSE Mode (Web-based clients)
@@ -434,7 +431,7 @@ For clients without native MCP support:
 pip install mcpo
 
 # Bridge MCP to OpenAI-compatible API
-mcpo --mcp-server "python path/to/mcp_server.py" --port 8080
+mcpo --mcp-server "python -m mcp_refactoring_assistant server" --port 8080
 ```
 
 Then configure your client to use `http://localhost:8080` as API endpoint.
