@@ -3,8 +3,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+[![Registry](https://img.shields.io/badge/MCP-Registry-blue.svg)](https://registry.modelcontextprotocol.io/)
+[![Docker](https://img.shields.io/badge/Docker-MCP_Catalog-2496ED.svg)](https://github.com/docker/mcp-registry)
 
 **A Model Context Protocol (MCP) server that analyzes Python code and provides guided refactoring suggestions without automatically modifying your code.**
+
+## Keywords
+`python` `refactoring` `code-analysis` `mcp-server` `ai-assistant` `claude` `rope` `radon` `vulture` `jedi` `educational` `mentoring` `code-quality` `static-analysis` `complexity-analysis`
 
 This tool integrates with AI coding assistants (Claude, ChatGPT, Cursor, etc.) to provide intelligent refactoring guidance. Instead of making automatic code changes, it gives you precise instructions on how to improve your Python code, acting as your refactoring mentor.
 
@@ -30,6 +35,72 @@ This tool integrates with AI coding assistants (Claude, ChatGPT, Cursor, etc.) t
 | Guidance    | Step-by-step instructions with line numbers | Automatic changes only        |
 | Learning    | Educational approach teaches patterns       | No learning component         |
 | Control     | Developer maintains full control            | Tool makes all decisions      |
+
+## Registry Submissions
+
+This MCP server is available across the entire MCP ecosystem:
+
+### Official MCP Registry
+**Published and Live**: [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io/)
+- Server name: `io.github.slamer59/mcp-python-refactoring`
+- Discoverable by all MCP-compatible clients
+
+### 🟡 Docker MCP Registry  
+**Pull Request Submitted**: [docker/mcp-registry #207](https://github.com/docker/mcp-registry/pull/207)
+- Will be available as `mcp/mcp-python-refactoring` on Docker Hub
+- Includes enhanced security: signatures, SBOM, provenance tracking
+- Integrated into Docker Desktop's MCP Toolkit
+
+### 🟡 Awesome MCP Servers Lists
+**Community Curated Lists**:
+- [appcypher/awesome-mcp-servers #180](https://github.com/appcypher/awesome-mcp-servers/pull/180) - Development Tools section
+- [punkpeye/awesome-mcp-servers #1321](https://github.com/punkpeye/awesome-mcp-servers/pull/1321) - Code Execution section
+
+### 📦 Installation Options
+Once all registries are live, users can discover via:
+- **MCP catalog** - Official registry search
+- **Docker Desktop** - MCP Toolkit integration  
+- **Community lists** - GitHub awesome lists
+- **Docker Hub** - `mcp/mcp-python-refactoring` (with enhanced security)
+
+## Docker Support
+
+### Using with Docker MCP Catalog
+
+```bash
+# Pull from Docker Hub (after registry approval)
+docker run -i mcp/mcp-python-refactoring
+
+# Or build locally
+docker build -t mcp-python-refactoring .
+docker run -i mcp-python-refactoring
+```
+
+### Dockerfile
+
+```dockerfile
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy project files
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+
+# Install the package
+RUN pip install --no-cache-dir -e .
+
+# Expose MCP server port (optional, for documentation)
+EXPOSE 3000
+
+# Run the MCP server
+ENTRYPOINT ["python-refactor", "server"]
+```
 
 ## Installation
 
@@ -69,11 +140,11 @@ python-refactor server
 
 ### Unified Server
 
-**Single Server** (`mcp_server.py`): Both guide-only and apply-changes modes in one server
+**Single Server**: Both guide-only and apply-changes modes in one server
 
 **Connection Options**:
-- **stdin/stdout**: `python mcp_server.py` (default)
-- **SSE (Server-Sent Events)**: `python mcp_server.py --sse [port]` (web-based)
+- **stdin/stdout**: `python-refactor server` (default)
+- **Module execution**: `python -m mcp_refactoring_assistant server`
 
 ### Tools
 
@@ -160,7 +231,7 @@ bunx @modelcontextprotocol/inspector
 
 # In the web interface:
 # Command: python
-# Args: mcp_server.py
+# Args: -m mcp_refactoring_assistant server
 # Working Directory: /path/to/your/project
 ```
 
@@ -202,7 +273,7 @@ export PATH=.venv/bin:$PATH && bun run test_unified.js
 python test_tool.py
 
 # Test with example file
-python mcp_server.py examples/example_code.py
+python -m mcp_refactoring_assistant --help
 ```
 
 ### Debug Server Issues
@@ -281,8 +352,21 @@ Add to your MCP configuration:
 {
   "servers": {
     "python-refactoring": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/slamer59/mcp-python-refactoring.git", "python-refactor", "server"]
+    }
+  }
+}
+```
+
+Or for local installation:
+
+```json
+{
+  "servers": {
+    "python-refactoring": {
       "command": "python",
-      "args": ["path/to/mcp_server.py"]
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
     }
   }
 }
@@ -295,8 +379,21 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "python-refactoring": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/slamer59/mcp-python-refactoring.git", "python-refactor", "server"]
+    }
+  }
+}
+```
+
+Or for local installation:
+
+```json
+{
+  "mcpServers": {
+    "python-refactoring": {
       "command": "python",
-      "args": ["path/to/mcp_server.py"]
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
     }
   }
 }
@@ -310,7 +407,7 @@ In VSCode settings or `.vscode/settings.json`:
   "cline.mcpServers": {
     "python-refactoring": {
       "command": "python",
-      "args": ["path/to/mcp_server.py"]
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
     }
   }
 }
@@ -324,7 +421,7 @@ Add to Cursor's MCP configuration:
   "mcpServers": {
     "python-refactoring": {
       "command": "python",
-      "args": ["path/to/mcp_server.py"]
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
     }
   }
 }
@@ -339,7 +436,7 @@ In `~/.continue/config.json`:
     {
       "name": "python-refactoring",
       "command": "python",
-      "args": ["path/to/mcp_server.py"]
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
     }
   ]
 }
@@ -353,7 +450,7 @@ Add to Windsurf MCP configuration:
   "servers": {
     "python-refactoring": {
       "command": "python",
-      "args": ["path/to/mcp_server.py"]
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
     }
   }
 }
@@ -363,7 +460,7 @@ Add to Windsurf MCP configuration:
 Use with MCP bridge or direct integration:
 
 ```bash
-aider --mcp-server "python path/to/mcp_server.py"
+aider --mcp-server "python -m mcp_refactoring_assistant server"
 ```
 
 ### OpenHands (formerly OpenDevin)
@@ -373,7 +470,7 @@ In OpenHands configuration:
 mcp_servers:
   python-refactoring:
     command: python
-    args: ["path/to/mcp_server.py"]
+    args: ["-m", "mcp_refactoring_assistant", "server"]
 ```
 
 ### Roo-Code
@@ -384,7 +481,7 @@ Add to Roo-Code's MCP settings:
   "mcpServers": {
     "python-refactoring": {
       "command": "python",
-      "args": ["path/to/mcp_server.py"]
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
     }
   }
 }
@@ -396,7 +493,7 @@ Add to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.python-refactoring]
 command = "python"
-args = ["path/to/mcp_server.py"]
+args = ["-m", "mcp_refactoring_assistant", "server"]
 ```
 
 ### Terminal-based clients
@@ -415,13 +512,12 @@ For web-based clients that support SSE connections:
 
 1. Start the server in SSE mode:
 ```bash
-python mcp_server.py --sse 3001
+# SSE mode is not currently supported
+# Use stdin/stdout mode instead
+python-refactor server
 ```
 
-2. Configure your client to connect to:
-```
-http://localhost:3001/sse
-```
+2. Use stdin/stdout connection instead of SSE
 
 ### Using with mcpo (ChatGPT and others)
 For clients without native MCP support:
@@ -438,10 +534,10 @@ Then configure your client to use `http://localhost:8080` as API endpoint.
 
 ### Notes
 
-- Replace `path/to/mcp_server.py` with the actual absolute path to your server
+- Use `python -m mcp_refactoring_assistant server` for local installations
 - For uvx installation, use the full uvx command instead of local paths
 - Some clients may require additional configuration or have different syntax
-- Always use absolute paths to avoid configuration issues
+- Always use absolute paths when specifying python executable
 - Test the connection with the client's MCP debugging tools if available
 
 ## How It Works
@@ -487,6 +583,13 @@ Users report significant improvements in code quality understanding and refactor
 - For large codebases (>100 files), consider using file-specific analysis
 - Increase timeout settings in MCP client configuration
 - Use `quick_analyze` for immediate feedback on specific functions
+
+### Community Registries
+
+Submit to awesome lists and community catalogs:
+- [MCPServers.org](https://mcp.so/) - Create GitHub issue
+- [Awesome MCP Servers](https://github.com/punkpeye/awesome-mcp-servers) - Submit PR
+- [Wong2's Awesome List](https://github.com/wong2/awesome-mcp-servers) - Submit PR
 
 ## License
 
