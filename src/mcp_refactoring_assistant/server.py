@@ -8,42 +8,30 @@ refactoring analysis and guidance without automatically modifying code.
 Now using a modular architecture with separated analyzers and Pydantic models.
 """
 
+import ast
 import json
+import glob
+import os
+import subprocess
 import sys
-from typing import Any, Dict, List
+import time
+from typing import Any, Dict, List, Optional
 
 # Import the new modular components
 from .core import EnhancedRefactoringAnalyzer
 from .core.package_analyzer import PackageAnalyzer
-from .models import ExtractableBlock, RefactoringGuidance
 from .analyzers import SecurityAndPatternsAnalyzer
-
-# Import additional features from old server (to be modularized later)
-import ast
-import glob
-import os
-import subprocess
-import tempfile
-import time
-from pathlib import Path
 
 
 class AdvancedFeatures:
     """Container for advanced features that need further modularization"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.analyzer = EnhancedRefactoringAnalyzer()
     
-    def analyze_test_coverage(self, source_path: str, test_path: str = None, target_coverage: int = 80) -> Dict[str, Any]:
+    def analyze_test_coverage(self, source_path: str, test_path: Optional[str] = None, target_coverage: int = 80) -> Dict[str, Any]:
         """Analyze test coverage and provide improvement suggestions"""
-        result = {
-            "coverage_analysis": {},
-            "missing_coverage": [],
-            "testing_suggestions": [],
-            "files_needing_tests": [],
-            "coverage_report": "",
-            "recommendations": []
-        }
+        result = self._initialize_coverage_result()
         
         try:
             import coverage
@@ -51,59 +39,13 @@ class AdvancedFeatures:
             coverage = None
         
         try:
-            # Initialize coverage if available
-            if coverage:
-                cov = coverage.Coverage()
-                cov.start()
-            
-            # Try to run existing tests if test_path provided
+            # Run coverage analysis if test path provided
             if test_path and os.path.exists(test_path):
-                try:
-                    # Run pytest with coverage
-                    cmd = [
-                        "python", "-m", "pytest", 
-                        test_path,
-                        f"--cov={source_path}",
-                        "--cov-report=term-missing",
-                        "--cov-report=json:coverage.json"
-                    ]
-                    subprocess.run(cmd, capture_output=True, text=True, cwd=".")
-                    
-                    # Read coverage.json if it exists
-                    if os.path.exists("coverage.json"):
-                        with open("coverage.json", "r") as f:
-                            coverage_data = json.load(f)
-                            result["coverage_analysis"] = coverage_data
-                        os.remove("coverage.json")
-                        
-                except Exception as e:
-                    result["error"] = f"Error running tests: {e}"
+                self._run_coverage_analysis(source_path, test_path, result)
             
             # Analyze source files for testing needs
-            if os.path.isfile(source_path):
-                source_files = [source_path]
-            else:
-                source_files = glob.glob(f"{source_path}/**/*.py", recursive=True)
-            
-            for file_path in source_files:
-                if "__pycache__" in file_path or file_path.endswith("__init__.py"):
-                    continue
-                    
-                with open(file_path, 'r') as f:
-                    content = f.read()
-                
-                # Analyze what needs testing
-                analysis = self._analyze_testability(content, file_path)
-                result["missing_coverage"].extend(analysis["untested_functions"])
-                result["testing_suggestions"].extend(analysis["suggestions"])
-                
-                if analysis["needs_tests"]:
-                    result["files_needing_tests"].append({
-                        "file": file_path,
-                        "functions": analysis["functions"],
-                        "classes": analysis["classes"],
-                        "complexity": analysis["complexity_score"]
-                    })
+            source_files = self._get_source_files(source_path)
+            self._analyze_source_files(source_files, result)
             
             # Generate recommendations
             result["recommendations"] = self._generate_testing_recommendations(
@@ -118,6 +60,69 @@ class AdvancedFeatures:
         
         return result
     
+    def _initialize_coverage_result(self) -> Dict[str, Any]:
+        """Initialize the coverage analysis result dictionary"""
+        return {
+            "coverage_analysis": {},
+            "missing_coverage": [],
+            "testing_suggestions": [],
+            "files_needing_tests": [],
+            "coverage_report": "",
+            "recommendations": []
+        }
+    
+    def _run_coverage_analysis(self, source_path: str, test_path: str, result: Dict[str, Any]) -> None:
+        """Run pytest with coverage analysis"""
+        try:
+            # Run pytest with coverage
+            cmd = [
+                "python", "-m", "pytest", 
+                test_path,
+                f"--cov={source_path}",
+                "--cov-report=term-missing",
+                "--cov-report=json:coverage.json"
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, cwd=".")
+            
+            # Read coverage.json if it exists
+            if os.path.exists("coverage.json"):
+                with open("coverage.json", "r") as f:
+                    coverage_data = json.load(f)
+                    result["coverage_analysis"] = coverage_data
+                os.remove("coverage.json")
+                
+        except Exception as e:
+            result["error"] = f"Error running tests: {e}"
+    
+    def _get_source_files(self, source_path: str) -> List[str]:
+        """Get list of source files to analyze"""
+        if os.path.isfile(source_path):
+            return [source_path]
+        else:
+            return glob.glob(f"{source_path}/**/*.py", recursive=True)
+    
+    def _analyze_source_files(self, source_files: List[str], result: Dict[str, Any]) -> None:
+        """Analyze source files for testing needs"""
+        for file_path in source_files:
+            if "__pycache__" in file_path or file_path.endswith("__init__.py"):
+                continue
+                
+            with open(file_path, 'r') as f:
+                content = f.read()
+            
+            # Analyze what needs testing
+            analysis = self._analyze_testability(content, file_path)
+            result["missing_coverage"].extend(analysis["untested_functions"])
+            result["testing_suggestions"].extend(analysis["suggestions"])
+            
+            if analysis["needs_tests"]:
+                result["files_needing_tests"].append({
+                    "file": file_path,
+                    "functions": analysis["functions"],
+                    "classes": analysis["classes"],
+                    "complexity": analysis["complexity_score"]
+                })
+
     def _analyze_testability(self, content: str, file_path: str) -> Dict[str, Any]:
         """Analyze code for testability and testing needs"""
         result = {
@@ -198,23 +203,33 @@ class AdvancedFeatures:
         # Detect existing test framework and setup
         test_framework = self._detect_test_framework()
         
-        recommendations.extend([
+        # Generate header recommendations
+        recommendations.extend(self._generate_recommendation_header(files_needing_tests, target_coverage, test_framework))
+        
+        # Generate priority file recommendations
+        priority_files = sorted(files_needing_tests, key=lambda x: x["complexity"], reverse=True)[:5]
+        recommendations.extend(self._generate_priority_file_recommendations(priority_files))
+        
+        return recommendations
+    
+    def _generate_recommendation_header(self, files_needing_tests: List[Dict], target_coverage: int, test_framework: Dict) -> List[str]:
+        """Generate header section of recommendations"""
+        return [
             f"🎯 TARGET: {target_coverage}% test coverage",
             f"📊 ANALYSIS: {len(files_needing_tests)} files need testing",
             f"🔍 DETECTED: {test_framework['framework']} framework",
             "",
             "📋 TESTING STRATEGY:"
-        ])
-        
-        # Priority files (high complexity first)
-        priority_files = sorted(files_needing_tests, key=lambda x: x["complexity"], reverse=True)[:5]
-        
+        ]
+    
+    def _generate_priority_file_recommendations(self, priority_files: List[Dict]) -> List[str]:
+        """Generate recommendations for priority files"""
+        recommendations = []
         for i, file_info in enumerate(priority_files, 1):
             recommendations.append(f"{i}. {file_info['file']}")
             recommendations.append(f"   • {len(file_info['functions'])} functions, {len(file_info['classes'])} classes")
             recommendations.append(f"   • Complexity: {file_info['complexity']:.1f}")
             recommendations.append("")
-        
         return recommendations
     
     def _detect_test_framework(self) -> Dict[str, Any]:
@@ -246,7 +261,7 @@ class AdvancedFeatures:
         
         return framework_info
 
-    def generate_tdd_refactoring_guidance(self, content: str, function_name: str = None, test_path: str = None) -> Dict[str, Any]:
+    def generate_tdd_refactoring_guidance(self, content: str, function_name: Optional[str] = None, test_path: Optional[str] = None) -> Dict[str, Any]:
         """Generate TDD-based refactoring guidance following Red-Green-Refactor pattern"""
         result = {
             "tdd_workflow": [],
@@ -319,6 +334,17 @@ class AdvancedFeatures:
                 complexity += len(child.values) - 1
         
         return complexity
+
+
+def _create_analysis_summary(guidance: List[Any]) -> Dict[str, int]:
+    """Create analysis summary statistics from guidance list"""
+    return {
+        "total_issues_found": len(guidance),
+        "critical_issues": len([g for g in guidance if hasattr(g, 'severity') and g.severity == "critical"]),
+        "high_priority": len([g for g in guidance if hasattr(g, 'severity') and g.severity == "high"]),
+        "medium_priority": len([g for g in guidance if hasattr(g, 'severity') and g.severity == "medium"]),
+        "low_priority": len([g for g in guidance if hasattr(g, 'severity') and g.severity == "low"]),
+    }
 
 
 # MCP Server Implementation
@@ -547,21 +573,7 @@ if MCP_AVAILABLE:
                 guidance = analyzer.analyze_file(file_path, content)
 
                 result = {
-                    "analysis_summary": {
-                        "total_issues_found": len(guidance),
-                        "critical_issues": len(
-                            [g for g in guidance if g.severity == "critical"]
-                        ),
-                        "high_priority": len(
-                            [g for g in guidance if g.severity == "high"]
-                        ),
-                        "medium_priority": len(
-                            [g for g in guidance if g.severity == "medium"]
-                        ),
-                        "low_priority": len(
-                            [g for g in guidance if g.severity == "low"]
-                        ),
-                    },
+                    "analysis_summary": _create_analysis_summary(guidance),
                     "refactoring_guidance": [g.to_dict() for g in guidance],
                     "tools_used": {
                         "rope": True,
@@ -807,13 +819,10 @@ if MCP_AVAILABLE:
                     filtered_guidance = [g for g in filtered_guidance if 'modernization' not in g.issue_type]
 
                 # Create comprehensive result
+                base_summary = _create_analysis_summary(filtered_guidance)
                 result = {
                     "analysis_summary": {
-                        "total_issues_found": len(filtered_guidance),
-                        "critical_issues": len([g for g in filtered_guidance if g.severity == "critical"]),
-                        "high_priority": len([g for g in filtered_guidance if g.severity == "high"]),
-                        "medium_priority": len([g for g in filtered_guidance if g.severity == "medium"]),
-                        "low_priority": len([g for g in filtered_guidance if g.severity == "low"]),
+                        **base_summary,
                         **analysis_summary
                     },
                     "security_and_patterns_guidance": [g.to_dict() for g in filtered_guidance],
@@ -849,7 +858,8 @@ if MCP_AVAILABLE:
                 )
             ]
 
-    async def main():
+    async def main() -> None:
+        """MCP server main function"""
         # Run the server using stdin/stdout streams
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
             await server.run(
@@ -858,8 +868,113 @@ if MCP_AVAILABLE:
 
 else:
     print("MCP not available. Running in standalone mode for testing.")
+    
+    # Mock types for testing when MCP is not available
+    class MockTypes:
+        class TextContent:
+            def __init__(self, type, text):
+                self.type = type
+                self.text = text
+    
+    types = MockTypes()
 
-    def main():
+    async def handle_call_tool(name: str, arguments: dict) -> list:
+        """Mock MCP tool handler for testing when MCP is not available"""
+        try:
+            analyzer = EnhancedRefactoringAnalyzer()
+            advanced_features = AdvancedFeatures()
+
+            if name == "analyze_python_file":
+                file_path = arguments.get("file_path", "unknown.py")
+                content = arguments["content"]
+
+                guidance = analyzer.analyze_file(file_path, content)
+
+                result = {
+                    "analysis_summary": _create_analysis_summary(guidance),
+                    "refactoring_guidance": [g.to_dict() for g in guidance],
+                    "tools_used": {
+                        "rope": True,
+                        "radon": True,
+                        "vulture": True,
+                        "pyrefly": True,
+                        "mccabe": True,
+                        "complexipy": True,
+                        "structure_analysis": True,
+                        "ast_patterns": True,
+                    },
+                }
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(result, indent=2))
+                ]
+
+            elif name == "analyze_security_and_patterns":
+                file_path = arguments.get("file_path", "unknown.py")
+                content = arguments["content"]
+                include_dependency_scan = arguments.get("include_dependency_scan", True)
+                include_security_scan = arguments.get("include_security_scan", True) 
+                include_modernization = arguments.get("include_modernization", True)
+
+                # Initialize the unified security and patterns analyzer
+                security_patterns_analyzer = SecurityAndPatternsAnalyzer()
+
+                # Run the comprehensive analysis
+                guidance = security_patterns_analyzer.analyze(content, file_path)
+
+                # Get analysis summary
+                analysis_summary = security_patterns_analyzer.get_analysis_summary(guidance)
+
+                # Filter results based on user preferences
+                filtered_guidance = guidance
+                if not include_dependency_scan:
+                    filtered_guidance = [g for g in filtered_guidance if 'dependency' not in g.issue_type]
+                if not include_security_scan:
+                    filtered_guidance = [g for g in filtered_guidance if 'security_vulnerability' != g.issue_type]
+                if not include_modernization:
+                    filtered_guidance = [g for g in filtered_guidance if 'modernization' not in g.issue_type]
+
+                # Create comprehensive result
+                base_summary = _create_analysis_summary(filtered_guidance)
+                result = {
+                    "analysis_summary": {
+                        **base_summary,
+                        **analysis_summary
+                    },
+                    "security_and_patterns_guidance": [g.to_dict() for g in filtered_guidance],
+                    "tools_used": {
+                        "bandit_security": include_security_scan,
+                        "pip_audit_dependencies": include_dependency_scan,
+                        "refurb_modernization": include_modernization,
+                        "unified_analysis": True
+                    },
+                    "scan_configuration": {
+                        "dependency_scan_enabled": include_dependency_scan,
+                        "security_scan_enabled": include_security_scan,
+                        "modernization_enabled": include_modernization
+                    }
+                }
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(result, indent=2))
+                ]
+
+            else:
+                return [
+                    types.TextContent(
+                        type="text", text=json.dumps({"error": f"Unknown tool: {name}"})
+                    )
+                ]
+
+        except Exception as e:
+            return [
+                types.TextContent(
+                    type="text",
+                    text=json.dumps({"error": f"Analysis failed: {str(e)}"}),
+                )
+            ]
+
+    def main() -> None:
         """Standalone mode for testing without MCP"""
         if len(sys.argv) < 2:
             print("Usage: python server.py <python_file>")

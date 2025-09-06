@@ -204,13 +204,21 @@ Returns server capabilities and available analysis tools.
 - Large files (>500 lines) with module splitting recommendations
 - Files with too many imports (>20) suggesting restructuring
 
+**🔒 Security & Modernization Features (NEW!):**
+- **Security Vulnerability Detection**: Comprehensive security scanning using Bandit
+- **Dependency Security Analysis**: CVE detection in project dependencies with pip-audit
+- **Modern Python Patterns**: Code modernization suggestions using Refurb
+- **Unified Analysis**: Intelligent prioritization combining security and modernization
+- **Configurable Scanning**: Enable/disable specific analysis types via MCP endpoint
+
 **Additional Analysis Tools:**
-- **Security Analysis**: Vulnerability detection and security best practices
 - **Performance Analysis**: Bottleneck identification and optimization suggestions
 - **Type Hints**: Missing type annotation detection
 - **Documentation**: Docstring coverage and quality assessment
 
 **Professional Tools Used:**
+
+**🔧 Core Refactoring Analysis:**
 - **[Rope](https://github.com/python-rope/rope)**: Professional refactoring analysis and extract method detection
 - **[Radon](https://github.com/rubik/radon)**: Code complexity metrics (cyclomatic, maintainability index)
 - **[Vulture](https://github.com/jendrikseipp/vulture)**: Dead code detection and unused import analysis
@@ -219,7 +227,15 @@ Returns server capabilities and available analysis tools.
 - **[Pyrefly](https://github.com/Khronos16/pyrefly)**: Advanced type checking and quality analysis
 - **[McCabe](https://github.com/PyCQA/mccabe)**: Cyclomatic complexity measurement
 - **[Complexipy](https://github.com/rohaquinlop/complexipy)**: Advanced complexity analysis and cognitive complexity
-- **Built-in File Analysis**: File size analysis and module splitting recommendations
+
+**🔒 Security & Modernization Tools (NEW!):**
+- **[Bandit](https://github.com/PyCQA/bandit)**: AST-based security vulnerability scanner (20+ vulnerability types)
+- **[pip-audit](https://github.com/pypa/pip-audit)**: Dependency vulnerability scanner with CVE database
+- **[Refurb](https://github.com/dosisod/refurb)**: Modern Python pattern suggestions and code modernization
+
+**📁 Built-in Analysis:**
+- **File Analysis**: File size analysis and module splitting recommendations
+- **Package Analysis**: Comprehensive package structure and dependency analysis
 
 ## Testing and Debugging
 

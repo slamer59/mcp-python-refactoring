@@ -1,0 +1,32 @@
+# Intentionally vulnerable dependencies for testing DependencySecurityAnalyzer
+# DO NOT USE IN PRODUCTION - These are known vulnerable versions for testing
+
+# Known vulnerable version of requests (CVE examples)
+requests==2.25.1
+
+# Old version of Pillow with known vulnerabilities
+Pillow==8.0.0
+
+# Vulnerable version of PyYAML
+PyYAML==5.1
+
+# Old version of Jinja2 with security issues
+Jinja2==2.10.1
+
+# Vulnerable version of Django (if we were using it)
+Django==3.0.0
+
+# Old version of Flask with security issues
+Flask==1.0.0
+
+# Vulnerable cryptography library version
+cryptography==3.0.0
+
+# Old version of urllib3 with vulnerabilities
+urllib3==1.25.8
+
+# Vulnerable version of setuptools
+setuptools==50.0.0
+
+# Old version of lxml with security issues
+lxml==4.5.0

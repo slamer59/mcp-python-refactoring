@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-09-06 17:33:24",
+  "tool_availability": {
+    "bandit": {
+      "available": true,
+      "version": "bandit 1.8.6\n  python version = 3.12.3 (main, Jun 18 2025, 17:59:45) [GCC 13.3.0]",
+      "required": true
+    },
+    "refurb": {
+      "available": true,
+      "version": "Refurb: v2.1.0\nMypy: v1.17.1",
+      "required": true
+    },
+    "pip-audit": {
+      "available": true,
+      "version": "pip-audit 2.9.0",
+      "required": true
+    },
+    "pytest": {
+      "available": true,
+      "version": "pytest 8.4.2",
+      "required": true
+    }
+  },
+  "test_results": {
+    "comprehensive_tests": false,
+    "individual_analyzer_tests": true,
+    "mcp_integration_test": true
+  },
+  "summary": {
+    "overall_success": false,
+    "tools_available": 4,
+    "tools_missing": 0
+  }
+}

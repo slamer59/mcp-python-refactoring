@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.341" timestamp="2025-09-06T17:33:24.349676+02:00" hostname="thomas-PC"><testcase classname="pytest" name="internal" time="0.000"><error message="internal error">Traceback (most recent call last):
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/main.py", line 289, in wrap_session
+    session.exitstatus = doit(config, session) or 0
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/main.py", line 342, in _main
+    config.hook.pytest_collection(session=session)
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/logging.py", line 788, in pytest_collection
+    return (yield)
+            ^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/warnings.py", line 99, in pytest_collection
+    return (yield)
+            ^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/config/__init__.py", line 1450, in pytest_collection
+    return (yield)
+            ^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/main.py", line 353, in pytest_collection
+    session.perform_collect()
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/main.py", line 816, in perform_collect
+    hook.pytest_collection_modifyitems(
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py", line 443, in pytest_collection_modifyitems
+    res = yield
+          ^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 139, in _multicall
+    teardown.throw(exception)
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/cacheprovider.py", line 373, in pytest_collection_modifyitems
+    res = yield
+          ^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/thomas/Developpments/mcp/mcp-python-refactoring/tests/conftest.py", line 538, in pytest_collection_modifyitems
+    item.add_marker(pytest.mark.mcp)
+                    ^^^^^^^^^^^^^^^
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/mark/structures.py", line 585, in __getattr__
+    fail(
+  File "/home/thomas/.venv/lib/python3.12/site-packages/_pytest/outcomes.py", line 177, in fail
+    raise Failed(msg=reason, pytrace=pytrace)
+Failed: 'mcp' not found in `markers` configuration option</error></testcase></testsuite></testsuites>

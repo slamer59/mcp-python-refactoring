@@ -202,7 +202,7 @@ class SecurityAndPatternsAnalyzer(BaseAnalyzer):
             'security_status': security_status,
             'modernization_status': modernization_status,
             'top_recommendations': recommendations[:5],  # Top 5 recommendations
-            'immediate_actions': [g for g in guidance_list if g.severity in ['critical', 'high']][:3]
+            'immediate_actions': [g.to_dict() for g in guidance_list if g.severity in ['critical', 'high']][:3]
         }
 
     def _determine_security_status(self, security_issues: List[RefactoringGuidance]) -> str:
