@@ -1,0 +1,69 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.slamer59/mcp-python-refactoring",
+  "description": "Educational Python refactoring assistant with guided suggestions for AI assistants",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/slamer59/mcp-python-refactoring",
+    "source": "github"
+  },
+  "version_detail": {
+    "version": "0.1.0"
+  },
+  "packages": [
+    {
+      "registry_type": "pypi",
+      "registry_base_url": "https://pypi.org",
+      "identifier": "mcp-python-refactoring",
+      "version": "0.1.0",
+      "environment_variables": []
+    }
+  ],
+  "tools": [
+    {
+      "name": "analyze_python_code",
+      "description": "Comprehensive Python code analysis with guided refactoring suggestions"
+    },
+    {
+      "name": "extract_function",
+      "description": "Extract method refactoring with guide or apply modes"
+    },
+    {
+      "name": "quick_analyze",
+      "description": "Fast analysis for immediate refactoring opportunities"
+    },
+    {
+      "name": "check_types_with_pyrefly",
+      "description": "Advanced type checking and quality analysis"
+    }
+  ],
+  "installation_methods": [
+    {
+      "type": "uvx",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/slamer59/mcp-python-refactoring.git",
+        "python-refactor",
+        "server"
+      ]
+    },
+    {
+      "type": "local",
+      "command": "python",
+      "args": ["-m", "mcp_refactoring_assistant", "server"]
+    }
+  ],
+  "categories": ["development-tools", "code-analysis", "education"],
+  "keywords": [
+    "python",
+    "refactoring",
+    "code-analysis",
+    "mcp-server",
+    "ai-assistant",
+    "educational",
+    "mentoring",
+    "code-quality",
+    "static-analysis"
+  ]
+}

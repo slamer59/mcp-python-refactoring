@@ -14,7 +14,9 @@ from typing import Any, Dict, List
 
 # Import the new modular components
 from .core import EnhancedRefactoringAnalyzer
+from .core.package_analyzer import PackageAnalyzer
 from .models import ExtractableBlock, RefactoringGuidance
+from .analyzers import SecurityAndPatternsAnalyzer
 
 # Import additional features from old server (to be modularized later)
 import ast
@@ -440,6 +442,94 @@ if MCP_AVAILABLE:
                     "required": ["content"],
                 },
             ),
+            types.Tool(
+                name="analyze_python_package",
+                description="Comprehensive package/folder analysis for refactoring opportunities",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "package_path": {
+                            "type": "string",
+                            "description": "Path to Python package/folder to analyze",
+                        },
+                        "package_name": {
+                            "type": "string",
+                            "description": "Name of the package (optional, will be inferred from path)",
+                        },
+                    },
+                    "required": ["package_path"],
+                },
+            ),
+            types.Tool(
+                name="get_package_metrics",
+                description="Get aggregated metrics for a Python package",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "package_path": {
+                            "type": "string",
+                            "description": "Path to Python package/folder",
+                        },
+                        "package_name": {
+                            "type": "string",
+                            "description": "Name of the package (optional)",
+                        },
+                    },
+                    "required": ["package_path"],
+                },
+            ),
+            types.Tool(
+                name="find_package_issues",
+                description="Identify package-level refactoring opportunities and structural issues",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "package_path": {
+                            "type": "string",
+                            "description": "Path to Python package/folder",
+                        },
+                        "issue_types": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Specific types of issues to look for (optional): scattered_functionality, god_package, circular_dependency, etc.",
+                        },
+                    },
+                    "required": ["package_path"],
+                },
+            ),
+            types.Tool(
+                name="analyze_security_and_patterns",
+                description="Comprehensive security scanning and modern Python patterns analysis",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "file_path": {
+                            "type": "string",
+                            "description": "Path to Python file to analyze",
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "Python file content to analyze",
+                        },
+                        "include_dependency_scan": {
+                            "type": "boolean",
+                            "description": "Include dependency vulnerability scanning (default: true)",
+                            "default": True
+                        },
+                        "include_security_scan": {
+                            "type": "boolean", 
+                            "description": "Include code security vulnerability scanning (default: true)",
+                            "default": True
+                        },
+                        "include_modernization": {
+                            "type": "boolean",
+                            "description": "Include modern Python pattern suggestions (default: true)",
+                            "default": True
+                        },
+                    },
+                    "required": ["content"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -584,6 +674,164 @@ if MCP_AVAILABLE:
 
                 return [
                     types.TextContent(type="text", text=json.dumps(tdd_guidance, indent=2))
+                ]
+
+            elif name == "analyze_python_package":
+                package_path = arguments["package_path"]
+                package_name = arguments.get("package_name")
+
+                # Initialize package analyzer
+                package_analyzer = PackageAnalyzer()
+
+                # Analyze the package
+                guidance = package_analyzer.analyze_package(package_path, package_name)
+
+                # Create comprehensive result
+                result = {
+                    "package_analysis": guidance.to_dict(),
+                    "summary": package_analyzer.get_package_summary(guidance),
+                    "analysis_timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "tools_used": {
+                        "dependency_analyzer": True,
+                        "cohesion_analyzer": True,
+                        "coupling_analyzer": True,
+                        "structure_analyzer": True,
+                        "radon_metrics": True,
+                        "vulture_dead_code": True
+                    }
+                }
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(result, indent=2))
+                ]
+
+            elif name == "get_package_metrics":
+                package_path = arguments["package_path"]
+                package_name = arguments.get("package_name")
+
+                # Initialize package analyzer
+                package_analyzer = PackageAnalyzer()
+
+                # Analyze the package to get metrics
+                guidance = package_analyzer.analyze_package(package_path, package_name)
+
+                # Extract just the metrics
+                result = {
+                    "package_name": guidance.package_name,
+                    "package_path": guidance.package_path,
+                    "metrics": guidance.metrics.to_dict(),
+                    "cohesion_metrics": guidance.cohesion_metrics.to_dict(),
+                    "coupling_metrics": guidance.coupling_metrics.to_dict(),
+                    "overall_health": {
+                        "score": guidance.overall_health_score,
+                        "rating": guidance.maintainability_rating
+                    },
+                    "dependency_stats": {
+                        "total_dependencies": len(guidance.dependencies),
+                        "circular_dependencies": len(guidance.circular_dependencies),
+                        "local_dependencies": len([d for d in guidance.dependencies if d.import_type == "local"]),
+                        "third_party_dependencies": len([d for d in guidance.dependencies if d.import_type == "third_party"]),
+                        "standard_dependencies": len([d for d in guidance.dependencies if d.import_type == "standard"])
+                    }
+                }
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(result, indent=2))
+                ]
+
+            elif name == "find_package_issues":
+                package_path = arguments["package_path"]
+                issue_types = arguments.get("issue_types", [])
+
+                # Initialize package analyzer
+                package_analyzer = PackageAnalyzer()
+
+                # Analyze the package
+                guidance = package_analyzer.analyze_package(package_path)
+
+                # Filter issues if specific types requested
+                filtered_issues = guidance.structural_issues
+                if issue_types:
+                    filtered_issues = [
+                        issue for issue in guidance.structural_issues
+                        if issue.issue_type in issue_types
+                    ]
+
+                # Create focused result
+                result = {
+                    "package_name": guidance.package_name,
+                    "package_path": guidance.package_path,
+                    "issues_found": len(filtered_issues),
+                    "issues_by_severity": {
+                        "critical": len([i for i in filtered_issues if i.severity == "critical"]),
+                        "high": len([i for i in filtered_issues if i.severity == "high"]),
+                        "medium": len([i for i in filtered_issues if i.severity == "medium"]),
+                        "low": len([i for i in filtered_issues if i.severity == "low"])
+                    },
+                    "structural_issues": [issue.to_dict() for issue in filtered_issues],
+                    "reorganization_suggestions": [
+                        suggestion.to_dict() for suggestion in guidance.reorganization_suggestions
+                    ],
+                    "circular_dependencies": guidance.circular_dependencies,
+                    "immediate_actions": guidance.high_priority_actions[:5],  # Top 5 priority actions
+                    "tools_used": ["DependencyAnalyzer", "CohesionAnalyzer", "CouplingAnalyzer", "StructureAnalyzer"]
+                }
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(result, indent=2))
+                ]
+
+            elif name == "analyze_security_and_patterns":
+                file_path = arguments.get("file_path", "unknown.py")
+                content = arguments["content"]
+                include_dependency_scan = arguments.get("include_dependency_scan", True)
+                include_security_scan = arguments.get("include_security_scan", True) 
+                include_modernization = arguments.get("include_modernization", True)
+
+                # Initialize the unified security and patterns analyzer
+                security_patterns_analyzer = SecurityAndPatternsAnalyzer()
+
+                # Run the comprehensive analysis
+                guidance = security_patterns_analyzer.analyze(content, file_path)
+
+                # Get analysis summary
+                analysis_summary = security_patterns_analyzer.get_analysis_summary(guidance)
+
+                # Filter results based on user preferences
+                filtered_guidance = guidance
+                if not include_dependency_scan:
+                    filtered_guidance = [g for g in filtered_guidance if 'dependency' not in g.issue_type]
+                if not include_security_scan:
+                    filtered_guidance = [g for g in filtered_guidance if 'security_vulnerability' != g.issue_type]
+                if not include_modernization:
+                    filtered_guidance = [g for g in filtered_guidance if 'modernization' not in g.issue_type]
+
+                # Create comprehensive result
+                result = {
+                    "analysis_summary": {
+                        "total_issues_found": len(filtered_guidance),
+                        "critical_issues": len([g for g in filtered_guidance if g.severity == "critical"]),
+                        "high_priority": len([g for g in filtered_guidance if g.severity == "high"]),
+                        "medium_priority": len([g for g in filtered_guidance if g.severity == "medium"]),
+                        "low_priority": len([g for g in filtered_guidance if g.severity == "low"]),
+                        **analysis_summary
+                    },
+                    "security_and_patterns_guidance": [g.to_dict() for g in filtered_guidance],
+                    "tools_used": {
+                        "bandit_security": include_security_scan,
+                        "pip_audit_dependencies": include_dependency_scan,
+                        "refurb_modernization": include_modernization,
+                        "unified_analysis": True
+                    },
+                    "scan_configuration": {
+                        "dependency_scan_enabled": include_dependency_scan,
+                        "security_scan_enabled": include_security_scan,
+                        "modernization_enabled": include_modernization
+                    }
+                }
+
+                return [
+                    types.TextContent(type="text", text=json.dumps(result, indent=2))
                 ]
 
             else:

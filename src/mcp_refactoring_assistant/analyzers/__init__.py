@@ -11,6 +11,10 @@ from .mccabe_analyzer import McCabeAnalyzer
 from .complexipy_analyzer import ComplexipyAnalyzer
 from .structure_analyzer import StructureAnalyzer
 from .ast_analyzer import AstAnalyzer
+from .security_analyzer import SecurityAnalyzer
+from .modern_patterns_analyzer import ModernPatternsAnalyzer
+from .dependency_security_analyzer import DependencySecurityAnalyzer
+from .security_and_patterns_analyzer import SecurityAndPatternsAnalyzer
 
 __all__ = [
     "BaseAnalyzer",
@@ -22,4 +26,8 @@ __all__ = [
     "ComplexipyAnalyzer",
     "StructureAnalyzer",
     "AstAnalyzer",
+    "SecurityAnalyzer",
+    "ModernPatternsAnalyzer", 
+    "DependencySecurityAnalyzer",
+    "SecurityAndPatternsAnalyzer",
 ]

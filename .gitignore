@@ -241,3 +241,5 @@ uv.lock
 
 # Bun
 bun.lockb
+.mcpregistry_github_token
+.mcpregistry_registry_token
