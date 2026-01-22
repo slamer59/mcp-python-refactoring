@@ -3,6 +3,7 @@
 from .dedup import deduplicate_findings
 from .exec import CommandResult, run_command
 from .scope import ResolvedScope, resolve_scope
+from .tools import analyze_repo_quality
 from .schema import (
     Budgets,
     ComplexityMetrics,
@@ -46,6 +47,7 @@ __all__ = [
     "ScopeSpec",
     "Summary",
     "CommandResult",
+    "analyze_repo_quality",
     "deduplicate_findings",
     "ResolvedScope",
     "run_command",
