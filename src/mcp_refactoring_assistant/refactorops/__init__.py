@@ -1,0 +1,47 @@
+"""RefactorOps core package."""
+
+from .dedup import deduplicate_findings
+from .schema import (
+    Budgets,
+    ComplexityMetrics,
+    DeadCodeMetrics,
+    DuplicationMetrics,
+    Evidence,
+    Finding,
+    Fix,
+    FixEdit,
+    Hotspot,
+    HotspotRange,
+    Location,
+    Metrics,
+    Position,
+    RepoQualityResult,
+    RuffMetrics,
+    RunInfo,
+    ScopeGit,
+    ScopeSpec,
+    Summary,
+)
+
+__all__ = [
+    "Budgets",
+    "ComplexityMetrics",
+    "DeadCodeMetrics",
+    "DuplicationMetrics",
+    "Evidence",
+    "Finding",
+    "Fix",
+    "FixEdit",
+    "Hotspot",
+    "HotspotRange",
+    "Location",
+    "Metrics",
+    "Position",
+    "RepoQualityResult",
+    "RuffMetrics",
+    "RunInfo",
+    "ScopeGit",
+    "ScopeSpec",
+    "Summary",
+    "deduplicate_findings",
+]
