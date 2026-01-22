@@ -1,6 +1,8 @@
 """RefactorOps core package."""
 
 from .dedup import deduplicate_findings
+from .exec import CommandResult, run_command
+from .scope import ResolvedScope, resolve_scope
 from .schema import (
     Budgets,
     ComplexityMetrics,
@@ -43,5 +45,9 @@ __all__ = [
     "ScopeGit",
     "ScopeSpec",
     "Summary",
+    "CommandResult",
     "deduplicate_findings",
+    "ResolvedScope",
+    "run_command",
+    "resolve_scope",
 ]
