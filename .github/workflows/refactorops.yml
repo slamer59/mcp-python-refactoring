@@ -1,0 +1,49 @@
+name: refactorops
+
+on:
+  pull_request:
+
+jobs:
+  refactorops:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v2
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Install ruff
+        run: uv pip install ruff
+
+      - name: Run RefactorOps analysis
+        run: |
+          uv run python -m mcp_refactoring_assistant.refactorops.cli analyze \
+            --scope-type changed \
+            --base origin/main \
+            --head HEAD \
+            --modes ruff,dead_code,complexity \
+            --out refactorops.json
+
+      - name: Upload RefactorOps report
+        uses: actions/upload-artifact@v4
+        with:
+          name: refactorops-report
+          path: refactorops.json
+
+      - name: RefactorOps gate
+        run: |
+          uv run python -m mcp_refactoring_assistant.refactorops.cli gate \
+            --baseline refactorops-baseline.json \
+            --current refactorops.json
