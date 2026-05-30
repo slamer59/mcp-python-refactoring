@@ -8,6 +8,6 @@
     "server": "python run_mcp_server.py"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.4.0"
+    "@modelcontextprotocol/sdk": "^1.0.0"
   }
 }
