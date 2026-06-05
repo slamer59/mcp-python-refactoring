@@ -43,6 +43,7 @@ dependencies = [
     "bandit>=1.7.0",
     "pip-audit>=2.6.0",
     "refurb>=2.0.0",
+    "mypy>=1.17.1",
 ]
 
 [project.urls]
