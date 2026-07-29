@@ -85,4 +85,5 @@ include = ["src/mcp_refactoring_assistant"]
 [dependency-groups]
 dev = [
     "pytest>=8.4.1",
+    "pytest-asyncio>=0.24.0",
 ]
