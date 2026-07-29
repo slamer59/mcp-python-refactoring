@@ -18,7 +18,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 # Import the new modular components
-from .core import EnhancedRefactoringAnalyzer
+from .core import EnhancedRefactoringAnalyzer, find_long_functions
 from .core.package_analyzer import PackageAnalyzer
 from .analyzers import SecurityAndPatternsAnalyzer
 
@@ -596,37 +596,7 @@ if MCP_AVAILABLE:
                 line_threshold = arguments.get("line_threshold", 20)
 
                 try:
-                    tree = ast.parse(content)
-                    long_functions = []
-
-                    for node in ast.walk(tree):
-                        if isinstance(node, ast.FunctionDef):
-                            if hasattr(node, "end_lineno") and node.end_lineno:
-                                length = node.end_lineno - node.lineno + 1
-                                if length >= line_threshold:
-                                    long_functions.append(
-                                        {
-                                            "name": node.name,
-                                            "start_line": node.lineno,
-                                            "end_line": node.end_lineno,
-                                            "length": length,
-                                            "location": f"lines {node.lineno}-{node.end_lineno}",
-                                        }
-                                    )
-
-                    result = {
-                        "total_functions_analyzed": len(
-                            [
-                                n
-                                for n in ast.walk(tree)
-                                if isinstance(n, ast.FunctionDef)
-                            ]
-                        ),
-                        "long_functions_found": len(long_functions),
-                        "line_threshold": line_threshold,
-                        "functions": long_functions,
-                    }
-
+                    result = find_long_functions(content, line_threshold)
                     return [
                         types.TextContent(
                             type="text", text=json.dumps(result, indent=2)

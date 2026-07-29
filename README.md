@@ -136,6 +136,66 @@ pip install -e .
 python-refactor server
 ```
 
+## CLI Usage
+
+The `python-refactor-cli` entry point (installed via `uv sync` or `pip install -e .`)
+runs every analysis standalone, without an MCP client — useful for scripts,
+CI, or driving the tool directly from an agent's shell:
+
+```bash
+uv run python-refactor-cli --help
+```
+
+In addition to `analyze`, `analyze-package`, `package-metrics`, `package-issues`,
+and `package-dependencies`, the CLI covers every MCP tool 1:1:
+
+#### `find-long-functions <file_path>`
+Find functions at or above a line-count threshold.
+```bash
+uv run python-refactor-cli find-long-functions src/app.py --line-threshold 30 --format json
+```
+
+#### `extraction-guidance <file_path>`
+Step-by-step guidance for extracting a specific function.
+```bash
+uv run python-refactor-cli extraction-guidance src/app.py --function-name process_order
+```
+
+#### `test-coverage <source_path>`
+Analyze test coverage and suggest what needs tests.
+```bash
+uv run python-refactor-cli test-coverage src/ --test-path tests/ --target-coverage 80
+```
+
+#### `tdd-guidance <file_path>`
+Red-Green-Refactor guidance for a function.
+```bash
+uv run python-refactor-cli tdd-guidance src/app.py --function-name process_order
+```
+
+#### `security-scan <file_path>`
+Security vulnerabilities, dependency scanning, and modernization suggestions (bandit, pip-audit, refurb).
+```bash
+uv run python-refactor-cli security-scan src/app.py --format table
+```
+
+Every command supports `--format json` for machine-readable output.
+
+## Working with Agents
+
+This project ships a `SKILL.md` describing how an agent should call it —
+which command to use for which situation, and the JSON output contract.
+
+```bash
+uv run python-refactor-cli skill path
+```
+
+Point your coding agent (e.g. Claude Code) at the path this prints and ask
+it to load the skill file before refactoring Python code in this repo. A
+good generic prompt:
+
+> Run `uv run python-refactor-cli skill path` and load that skill for this session.
+
 ## Available MCP Tools
 
 ### Unified Server

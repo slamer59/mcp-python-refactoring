@@ -4,6 +4,7 @@ Radon-based complexity analyzer
 """
 
 import ast
+import sys
 from typing import List
 
 from radon.complexity import cc_visit
@@ -78,6 +79,6 @@ class RadonAnalyzer(BaseAnalyzer):
                     )
 
         except Exception as e:
-            print(f"Warning: Radon analysis failed: {e}")
+            print(f"Warning: Radon analysis failed: {e}", file=sys.stderr)
 
         return guidance_list

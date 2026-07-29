@@ -5,6 +5,7 @@ Supports both MCP server mode and standalone operation
 """
 
 import click
+import importlib.resources
 import json
 import os
 import sys
@@ -23,9 +24,11 @@ from rich import box
 import time
 
 # Import our core analyzer
-from .core import EnhancedRefactoringAnalyzer
+from .core import EnhancedRefactoringAnalyzer, find_long_functions
 from .core.package_analyzer import PackageAnalyzer
+from .analyzers import SecurityAndPatternsAnalyzer
 from .models import RefactoringGuidance
+from .server import AdvancedFeatures
 
 console = Console()
 
@@ -35,6 +38,8 @@ class RefactoringCLI:
     def __init__(self):
         self.analyzer = EnhancedRefactoringAnalyzer()
         self.package_analyzer = PackageAnalyzer()
+        self.advanced_features = AdvancedFeatures()
+        self.security_analyzer = SecurityAndPatternsAnalyzer()
         self.console = Console()
         self.current_results = None
         self.current_package_results = None
@@ -821,7 +826,7 @@ Maintainability Rating: {guidance.maintainability_rating}
 
 # Click CLI interface
 @click.group()
-@click.version_option(version="1.0.0")
+@click.version_option(version="0.2.0")
 @click.pass_context
 def cli(ctx):
     """🐍 Python Refactoring Assistant - Comprehensive code analysis and refactoring guidance"""
@@ -1091,6 +1096,219 @@ def package_dependencies(ctx, package_path: str, show_circular: bool, format: st
                 cycle_text = " → ".join(cycle)
                 console.print(f"  {i}. {cycle_text}")
 
+
+@cli.command(name='find-long-functions')
+@click.argument('file_path', type=click.Path(exists=True))
+@click.option('--line-threshold', '-t', default=20, type=int, help='Minimum lines to consider a function long')
+@click.option('--format', '-f', type=click.Choice(['table', 'json']), default='table', help='Output format')
+@click.pass_context
+def find_long_functions_cmd(ctx, file_path: str, line_threshold: int, format: str):
+    """📏 Find functions that are candidates for extraction"""
+
+    cli_tool = ctx.obj['cli_tool']
+    if format != 'json':
+        cli_tool.display_banner()
+
+    with open(file_path, 'r') as f:
+        content = f.read()
+
+    try:
+        result = find_long_functions(content, line_threshold)
+    except SyntaxError as e:
+        console.print(f"❌ Syntax error: {e}", style="bold red")
+        return
+
+    if format == 'json':
+        click.echo(json.dumps(result, indent=2))
+        return
+
+    console.print(f"\n📏 [bold]Long Functions: {file_path}[/bold]")
+    console.print(f"Analyzed {result['total_functions_analyzed']} functions, "
+                  f"found {result['long_functions_found']} at or above {line_threshold} lines\n")
+
+    if result['functions']:
+        table = Table(box=box.ROUNDED)
+        table.add_column("Name", style="cyan")
+        table.add_column("Start", justify="right")
+        table.add_column("End", justify="right")
+        table.add_column("Length", justify="right", style="yellow")
+        for func in result['functions']:
+            table.add_row(func['name'], str(func['start_line']), str(func['end_line']), str(func['length']))
+        console.print(table)
+
+
+@cli.command(name='extraction-guidance')
+@click.argument('file_path', type=click.Path(exists=True))
+@click.option('--function-name', '-fn', help='Filter to a specific function')
+@click.option('--format', '-f', type=click.Choice(['table', 'json', 'detailed']), default='table', help='Output format')
+@click.pass_context
+def extraction_guidance(ctx, file_path: str, function_name: Optional[str], format: str):
+    """✂️ Get step-by-step guidance for extracting functions"""
+
+    cli_tool = ctx.obj['cli_tool']
+    if format != 'json':
+        cli_tool.display_banner()
+
+    with open(file_path, 'r') as f:
+        content = f.read()
+
+    guidance = cli_tool.analyzer.analyze_file(file_path, content)
+    extraction = [g for g in guidance if g.issue_type == "extract_function"]
+    if function_name:
+        extraction = [g for g in extraction if function_name in g.location]
+
+    if format == 'json':
+        result = {
+            "extraction_opportunities": len(extraction),
+            "guidance": [g.to_dict() for g in extraction],
+        }
+        click.echo(json.dumps(result, indent=2))
+        return
+
+    console.print(f"\n✂️ [bold]Extraction Opportunities: {file_path}[/bold]")
+    console.print(f"Found {len(extraction)} extraction opportunit{'y' if len(extraction) == 1 else 'ies'}\n")
+
+    if format == 'detailed':
+        for g in extraction:
+            cli_tool.display_detailed_guidance(g)
+    else:
+        table = Table(box=box.ROUNDED)
+        table.add_column("Location", style="cyan")
+        table.add_column("Severity", style="yellow")
+        table.add_column("Description")
+        for g in extraction:
+            table.add_row(g.location, g.severity, g.description)
+        console.print(table)
+
+
+@cli.command(name='test-coverage')
+@click.argument('source_path', type=click.Path(exists=True))
+@click.option('--test-path', '-t', type=click.Path(exists=True), help='Path to test directory')
+@click.option('--target-coverage', default=80, type=int, help='Target coverage percentage')
+@click.option('--format', '-f', type=click.Choice(['summary', 'json']), default='summary', help='Output format')
+@click.pass_context
+def test_coverage(ctx, source_path: str, test_path: Optional[str], target_coverage: int, format: str):
+    """🧪 Analyze test coverage and suggest improvements"""
+
+    cli_tool = ctx.obj['cli_tool']
+    if format != 'json':
+        cli_tool.display_banner()
+
+    result = cli_tool.advanced_features.analyze_test_coverage(source_path, test_path, target_coverage)
+
+    if format == 'json':
+        click.echo(json.dumps(result, indent=2, default=str))
+        return
+
+    if result.get('error'):
+        console.print(f"❌ {result['error']}", style="bold red")
+        return
+
+    summary_text = f"""
+📁 Source: {source_path}
+🎯 Target Coverage: {target_coverage}%
+📄 Files Needing Tests: {len(result['files_needing_tests'])}
+💡 Recommendations: {len(result['recommendations'])}
+    """
+    console.print(Panel(summary_text.strip(), title="🧪 Test Coverage Summary", border_style="blue"))
+
+    for rec in result['recommendations']:
+        console.print(f"  • {rec}")
+
+
+@cli.command(name='tdd-guidance')
+@click.argument('file_path', type=click.Path(exists=True))
+@click.option('--function-name', '-fn', help='Specific function/class to refactor')
+@click.option('--test-path', '-t', type=click.Path(exists=True), help='Path to existing tests')
+@click.option('--format', '-f', type=click.Choice(['summary', 'json']), default='summary', help='Output format')
+@click.pass_context
+def tdd_guidance(ctx, file_path: str, function_name: Optional[str], test_path: Optional[str], format: str):
+    """🔴🟢🔵 Generate TDD-based refactoring guidance (Red-Green-Refactor)"""
+
+    cli_tool = ctx.obj['cli_tool']
+    if format != 'json':
+        cli_tool.display_banner()
+
+    with open(file_path, 'r') as f:
+        content = f.read()
+
+    result = cli_tool.advanced_features.generate_tdd_refactoring_guidance(content, function_name, test_path)
+
+    if format == 'json':
+        click.echo(json.dumps(result, indent=2, default=str))
+        return
+
+    console.print(f"\n🔴🟢🔵 [bold]TDD Refactoring Guidance: {file_path}[/bold]\n")
+    console.print(json.dumps(result, indent=2, default=str))
+
+
+@cli.command(name='security-scan')
+@click.argument('file_path', type=click.Path(exists=True))
+@click.option('--no-dependency-scan', is_flag=True, help='Skip dependency vulnerability scanning')
+@click.option('--no-security-scan', is_flag=True, help='Skip code security scanning')
+@click.option('--no-modernization', is_flag=True, help='Skip modernization suggestions')
+@click.option('--format', '-f', type=click.Choice(['table', 'json', 'detailed']), default='table', help='Output format')
+@click.pass_context
+def security_scan(ctx, file_path: str, no_dependency_scan: bool, no_security_scan: bool, no_modernization: bool, format: str):
+    """🔒 Scan for security vulnerabilities and modern-pattern issues"""
+
+    cli_tool = ctx.obj['cli_tool']
+    if format != 'json':
+        cli_tool.display_banner()
+
+    with open(file_path, 'r') as f:
+        content = f.read()
+
+    include_dependency_scan = not no_dependency_scan
+    include_security_scan = not no_security_scan
+    include_modernization = not no_modernization
+
+    guidance = cli_tool.security_analyzer.analyze(content, file_path)
+    summary = cli_tool.security_analyzer.get_analysis_summary(guidance)
+
+    filtered = guidance
+    if not include_dependency_scan:
+        filtered = [g for g in filtered if 'dependency' not in g.issue_type]
+    if not include_security_scan:
+        filtered = [g for g in filtered if g.issue_type != 'security_vulnerability']
+    if not include_modernization:
+        filtered = [g for g in filtered if 'modernization' not in g.issue_type]
+
+    if format == 'json':
+        result = {
+            "analysis_summary": summary,
+            "security_and_patterns_guidance": [g.to_dict() for g in filtered],
+        }
+        click.echo(json.dumps(result, indent=2, default=str))
+        return
+
+    console.print(f"\n🔒 [bold]Security & Patterns Scan: {file_path}[/bold]")
+    console.print(f"Found {len(filtered)} issue(s)\n")
+
+    if format == 'detailed':
+        for g in filtered:
+            cli_tool.display_detailed_guidance(g)
+    else:
+        table = Table(box=box.ROUNDED)
+        table.add_column("Type", style="cyan")
+        table.add_column("Severity", style="yellow")
+        table.add_column("Location")
+        table.add_column("Description")
+        for g in filtered:
+            table.add_row(g.issue_type, g.severity, g.location, g.description)
+        console.print(table)
+
+
+@cli.group()
+def skill():
+    """🧭 Skill file utilities for agent integration"""
+
+
+@skill.command(name='path')
+def skill_path():
+    """📍 Print the absolute path to the bundled SKILL.md"""
+    skill_file = importlib.resources.files("mcp_refactoring_assistant") / "skill" / "SKILL.md"
+    click.echo(str(skill_file))
 
 
 
