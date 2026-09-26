@@ -352,7 +352,7 @@ try:
     import mcp
     import mcp.server.stdio
     import mcp.types as types
-    from mcp.server import Server
+    from mcp.server import Server, ServerRequestContext
     MCP_AVAILABLE = True
 except ImportError:
     MCP_AVAILABLE = False
@@ -361,7 +361,6 @@ if MCP_AVAILABLE:
     # Create the server instance
     server = Server("python-refactoring-assistant")
 
-    @server.list_tools()
     async def handle_list_tools() -> list[types.Tool]:
         """List available refactoring analysis tools"""
         return [
@@ -558,7 +557,6 @@ if MCP_AVAILABLE:
             ),
         ]
 
-    @server.call_tool()
     async def handle_call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         """Handle tool calls for refactoring analysis"""
 
@@ -827,6 +825,30 @@ if MCP_AVAILABLE:
                     text=json.dumps({"error": f"Analysis failed: {str(e)}"}),
                 )
             ]
+
+    # mcp >= 2 removed the @server.list_tools() / @server.call_tool() decorators:
+    # handlers are registered explicitly against their protocol method. These
+    # adapters keep handle_list_tools/handle_call_tool as plain callables so
+    # they stay directly testable, and wrap their return values in the result
+    # models the protocol expects.
+    async def _handle_list_tools_request(
+        ctx: ServerRequestContext, params: types.PaginatedRequestParams | None
+    ) -> types.ListToolsResult:
+        return types.ListToolsResult(tools=await handle_list_tools())
+
+    async def _handle_call_tool_request(
+        ctx: ServerRequestContext, params: types.CallToolRequestParams
+    ) -> types.CallToolResult:
+        return types.CallToolResult(
+            content=await handle_call_tool(params.name, params.arguments or {})
+        )
+
+    server.add_request_handler(
+        "tools/list", types.PaginatedRequestParams, _handle_list_tools_request
+    )
+    server.add_request_handler(
+        "tools/call", types.CallToolRequestParams, _handle_call_tool_request
+    )
 
     async def main() -> None:
         """MCP server main function"""

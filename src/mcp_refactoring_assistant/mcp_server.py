@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 # Import MCP with SSE support
 try:
-    from mcp.server import Server
+    from mcp.server import Server, ServerRequestContext
     from mcp.server.stdio import stdio_server
     from mcp.server.sse import SseServerTransport
     from mcp import types
@@ -120,7 +120,6 @@ server = None
 if MCP_AVAILABLE:
     server = Server("python-refactoring")
 
-    @server.list_tools()
     async def handle_list_tools() -> List[types.Tool]:
         """List all refactoring tools"""
         return [
@@ -204,7 +203,6 @@ if MCP_AVAILABLE:
             )
         ]
 
-    @server.call_tool()
     async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
         """Handle all tool calls"""
         
@@ -455,6 +453,29 @@ if MCP_AVAILABLE:
                 })
             )]
 
+    # mcp >= 2 removed the @server.list_tools() / @server.call_tool() decorators:
+    # handlers are registered explicitly against their protocol method. These
+    # adapters keep handle_list_tools/handle_call_tool as plain callables and
+    # wrap their return values in the result models the protocol expects.
+    async def _handle_list_tools_request(
+        ctx: ServerRequestContext, params: types.PaginatedRequestParams | None
+    ) -> types.ListToolsResult:
+        return types.ListToolsResult(tools=await handle_list_tools())
+
+    async def _handle_call_tool_request(
+        ctx: ServerRequestContext, params: types.CallToolRequestParams
+    ) -> types.CallToolResult:
+        return types.CallToolResult(
+            content=await handle_call_tool(params.name, params.arguments or {})
+        )
+
+    server.add_request_handler(
+        "tools/list", types.PaginatedRequestParams, _handle_list_tools_request
+    )
+    server.add_request_handler(
+        "tools/call", types.CallToolRequestParams, _handle_call_tool_request
+    )
+
 async def run_server():
     """Launch the unified MCP server"""
     print("🚀 Starting Python Refactoring MCP Server", file=sys.stderr)
@@ -464,14 +485,36 @@ async def run_server():
     if len(sys.argv) > 1 and sys.argv[1] == "--sse":
         port = int(sys.argv[2]) if len(sys.argv) > 2 else 3001
         print(f"🌐 Starting SSE server on port {port}", file=sys.stderr)
-        
-        transport = SseServerTransport("/messages")
-        
+
+        # mcp >= 2 removed SseServerTransport.create_app(); wire the transport
+        # into a Starlette app explicitly (mcp/server/sse.py module docs).
+        transport = SseServerTransport("/messages/")
+
         import uvicorn
-        from fastapi import FastAPI
-        from fastapi.middleware.cors import CORSMiddleware
-        
-        app = FastAPI()
+        from starlette.applications import Starlette
+        from starlette.middleware.cors import CORSMiddleware
+        from starlette.responses import Response
+        from starlette.routing import Mount, Route
+
+        async def handle_sse(request):
+            async with transport.connect_sse(
+                request.scope, request.receive, request._send
+            ) as (read_stream, write_stream):
+                await server.run(
+                    read_stream,
+                    write_stream,
+                    server.create_initialization_options(),
+                )
+            # Must return a Response: without it a disconnecting client raises
+            # "TypeError: 'NoneType' object is not callable".
+            return Response()
+
+        app = Starlette(
+            routes=[
+                Route("/sse", endpoint=handle_sse, methods=["GET"]),
+                Mount("/messages/", app=transport.handle_post_message),
+            ],
+        )
         app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -479,12 +522,12 @@ async def run_server():
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        
-        # Mount the SSE transport
-        app.mount("/", transport.create_app())
-        
-        # Run the server
-        uvicorn.run(app, host="0.0.0.0", port=port)
+
+        # Run the server. run_server() is already inside an event loop (main()
+        # wraps it in asyncio.run), so uvicorn.run() - which calls asyncio.run()
+        # itself - would raise "cannot be called from a running event loop".
+        uvicorn_config = uvicorn.Config(app, host="0.0.0.0", port=port)
+        await uvicorn.Server(uvicorn_config).serve()
     else:
         print("🔄 Listening on stdin/stdout", file=sys.stderr)
         async with stdio_server() as (read_stream, write_stream):
