@@ -550,22 +550,6 @@ wheels = [
 ]
 
 [[package]]
-name = "fastapi"
-version = "0.141.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "annotated-doc" },
-    { name = "pydantic" },
-    { name = "starlette" },
-    { name = "typing-extensions" },
-    { name = "typing-inspection" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/7e/26bdd4f5a81891adf233354b6f4e7977563cc16e0f94b3f33405873c9278/fastapi-0.141.0.tar.gz", hash = "sha256:cae32222bdc8b2805c4d3deb4e024b381ea2a6f2de7febfe3a9a73a9c29c2e5e", size = 425532, upload-time = "2026-07-29T14:47:57.249Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/85/eefb536e451ebeb7ad9045e62a0c17c68d7caa52211174da034e683956d1/fastapi-0.141.0-py3-none-any.whl", hash = "sha256:5567705c791fa33202dabd1860df1d1650a7b1bf373378198d7b0675c9574618", size = 131808, upload-time = "2026-07-29T14:47:59.076Z" },
-]
-
-[[package]]
 name = "filelock"
 version = "3.32.0"
 source = { registry = "https://pypi.org/simple" }
@@ -873,7 +857,6 @@ dependencies = [
     { name = "complexipy" },
     { name = "coverage" },
     { name = "duckdb" },
-    { name = "fastapi" },
     { name = "jedi" },
     { name = "libcst" },
     { name = "mccabe" },
@@ -889,6 +872,7 @@ dependencies = [
     { name = "refurb" },
     { name = "rich" },
     { name = "rope" },
+    { name = "starlette" },
     { name = "uvicorn" },
     { name = "vulture" },
 ]
@@ -931,7 +915,6 @@ requires-dist = [
     { name = "coverage", marker = "extra == 'analysis'", specifier = ">=7.0.0" },
     { name = "duckdb", specifier = ">=1.3.2" },
     { name = "duckdb", marker = "extra == 'analysis'", specifier = ">=1.3.2" },
-    { name = "fastapi", specifier = ">=0.104.0" },
     { name = "jedi", specifier = ">=0.19.1" },
     { name = "libcst", specifier = ">=1.1.0" },
     { name = "mccabe", specifier = ">=0.7.0" },
@@ -950,6 +933,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.0.0" },
     { name = "rich", marker = "extra == 'cli'", specifier = ">=13.0.0" },
     { name = "rope", specifier = ">=1.11.0" },
+    { name = "starlette", specifier = ">=1.3.1" },
     { name = "uvicorn", specifier = ">=0.24.0" },
     { name = "vulture", specifier = ">=2.10" },
 ]

@@ -670,7 +670,7 @@ Users report significant improvements in code quality understanding and refactor
 **SSE Connection Issues:**
 - Verify port is not in use: `netstat -an | grep 3001`
 - Check firewall settings for local connections
-- Ensure FastAPI and Uvicorn are installed: `uv add fastapi uvicorn`
+- Ensure Starlette and Uvicorn are installed: `uv add starlette uvicorn`
 
 **Performance Issues:**
 - For large codebases (>100 files), consider using file-specific analysis
