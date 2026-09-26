@@ -86,4 +86,6 @@ include = ["src/mcp_refactoring_assistant"]
 dev = [
     "pytest>=8.4.1",
     "pytest-asyncio>=0.24.0",
+    "pytest-cov>=7.1.0",
+    "pytest-timeout>=2.4.0",
 ]
