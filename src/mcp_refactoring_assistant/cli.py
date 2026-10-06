@@ -5,6 +5,7 @@ Supports both MCP server mode and standalone operation
 """
 
 import click
+import copy
 import importlib.resources
 import json
 import os
@@ -834,7 +835,7 @@ def cli(ctx):
     ctx.obj['cli_tool'] = RefactoringCLI()
 
 
-@cli.command()
+@click.command()
 @click.argument('file_path', type=click.Path(exists=True))
 @click.option('--interactive', '-i', is_flag=True, help='Interactive guidance browser')
 @click.option('--format', '-f', type=click.Choice(['table', 'json', 'detailed']), default='table', help='Output format')
@@ -867,7 +868,7 @@ def analyze(ctx, file_path: str, interactive: bool, format: str):
         cli_tool.interactive_guidance_browser()
 
 
-@cli.command()
+@click.command()
 @click.argument('repo_path', type=click.Path(exists=True))
 @click.option('--database', '-db', default='.refactoring_index.db', help='Database file path')
 @click.option('--include', multiple=True, help='Include patterns (glob)')
@@ -882,7 +883,7 @@ def index(ctx, repo_path: str, database: str, include: tuple, exclude: tuple):
     cli_tool.repository_index_interactive(repo_path, database)
 
 
-@cli.command()
+@click.command()
 @click.option('--database', '-db', default='.refactoring_index.db', help='Database file path')
 @click.pass_context  
 def query(ctx, database: str):
@@ -905,7 +906,7 @@ def server(ctx):
     cli_tool.start_mcp_server_mode()
 
 
-@cli.command(name='analyze-package')
+@click.command(name='analyze-package')
 @click.argument('package_path', type=click.Path(exists=True))
 @click.option('--name', '-n', help='Package name (optional, inferred from path)')
 @click.option('--interactive', '-i', is_flag=True, help='Interactive package browser')
@@ -940,7 +941,7 @@ def analyze_package(ctx, package_path: str, name: str, interactive: bool, format
         cli_tool.interactive_package_browser()
 
 
-@cli.command(name='package-metrics')
+@click.command(name='package-metrics')
 @click.argument('package_path', type=click.Path(exists=True))
 @click.option('--name', '-n', help='Package name (optional, inferred from path)')
 @click.option('--format', '-f', type=click.Choice(['table', 'json']), default='table', help='Output format')
@@ -977,7 +978,7 @@ def package_metrics(ctx, package_path: str, name: str, format: str):
         cli_tool._show_package_metrics_detail(guidance)
 
 
-@cli.command(name='package-issues')
+@click.command(name='package-issues')
 @click.argument('package_path', type=click.Path(exists=True))
 @click.option('--types', '-t', multiple=True, help='Specific issue types to look for')
 @click.option('--severity', '-s', type=click.Choice(['critical', 'high', 'medium', 'low']), help='Minimum severity level')
@@ -1031,7 +1032,7 @@ def package_issues(ctx, package_path: str, types: tuple, severity: str, format: 
                 cli_tool._show_reorganization_suggestions(guidance)
 
 
-@cli.command(name='package-dependencies')
+@click.command(name='package-dependencies')
 @click.argument('package_path', type=click.Path(exists=True))
 @click.option('--show-circular', '-c', is_flag=True, help='Show circular dependencies')
 @click.option('--format', '-f', type=click.Choice(['summary', 'json', 'detailed']), default='summary', help='Output format')
@@ -1097,7 +1098,7 @@ def package_dependencies(ctx, package_path: str, show_circular: bool, format: st
                 console.print(f"  {i}. {cycle_text}")
 
 
-@cli.command(name='find-long-functions')
+@click.command(name='find-long-functions')
 @click.argument('file_path', type=click.Path(exists=True))
 @click.option('--line-threshold', '-t', default=20, type=int, help='Minimum lines to consider a function long')
 @click.option('--format', '-f', type=click.Choice(['table', 'json']), default='table', help='Output format')
@@ -1137,7 +1138,7 @@ def find_long_functions_cmd(ctx, file_path: str, line_threshold: int, format: st
         console.print(table)
 
 
-@cli.command(name='extraction-guidance')
+@click.command(name='extraction-guidance')
 @click.argument('file_path', type=click.Path(exists=True))
 @click.option('--function-name', '-fn', help='Filter to a specific function')
 @click.option('--format', '-f', type=click.Choice(['table', 'json', 'detailed']), default='table', help='Output format')
@@ -1181,7 +1182,7 @@ def extraction_guidance(ctx, file_path: str, function_name: Optional[str], forma
         console.print(table)
 
 
-@cli.command(name='test-coverage')
+@click.command(name='test-coverage')
 @click.argument('source_path', type=click.Path(exists=True))
 @click.option('--test-path', '-t', type=click.Path(exists=True), help='Path to test directory')
 @click.option('--target-coverage', default=80, type=int, help='Target coverage percentage')
@@ -1216,7 +1217,7 @@ def test_coverage(ctx, source_path: str, test_path: Optional[str], target_covera
         console.print(f"  • {rec}")
 
 
-@cli.command(name='tdd-guidance')
+@click.command(name='tdd-guidance')
 @click.argument('file_path', type=click.Path(exists=True))
 @click.option('--function-name', '-fn', help='Specific function/class to refactor')
 @click.option('--test-path', '-t', type=click.Path(exists=True), help='Path to existing tests')
@@ -1242,7 +1243,7 @@ def tdd_guidance(ctx, file_path: str, function_name: Optional[str], test_path: O
     console.print(json.dumps(result, indent=2, default=str))
 
 
-@cli.command(name='security-scan')
+@click.command(name='security-scan')
 @click.argument('file_path', type=click.Path(exists=True))
 @click.option('--no-dependency-scan', is_flag=True, help='Skip dependency vulnerability scanning')
 @click.option('--no-security-scan', is_flag=True, help='Skip code security scanning')
@@ -1299,16 +1300,188 @@ def security_scan(ctx, file_path: str, no_dependency_scan: bool, no_security_sca
         console.print(table)
 
 
+# Capability groups
+@cli.group(name='file')
+def file_group():
+    """📄 Single-file analysis: refactoring, long functions, extraction"""
+
+
+@cli.group(name='test')
+def test_group():
+    """🧪 Test coverage and TDD refactoring guidance"""
+
+
+@cli.group(name='security')
+def security_group():
+    """🔒 Security vulnerabilities and modern-pattern checks"""
+
+
+@cli.group(name='package')
+def package_group():
+    """📦 Package-level structure, metrics, issues and dependencies"""
+
+
+@cli.group(name='repo')
+def repo_group():
+    """🏗️ Repository indexing and querying"""
+
+
+# (group, subcommand name, command, legacy flat name)
+GROUPED_COMMANDS = [
+    (file_group, 'analyze', analyze, 'analyze'),
+    (file_group, 'long-functions', find_long_functions_cmd, 'find-long-functions'),
+    (file_group, 'extraction', extraction_guidance, 'extraction-guidance'),
+    (test_group, 'coverage', test_coverage, 'test-coverage'),
+    (test_group, 'tdd', tdd_guidance, 'tdd-guidance'),
+    (security_group, 'scan', security_scan, 'security-scan'),
+    (package_group, 'analyze', analyze_package, 'analyze-package'),
+    (package_group, 'metrics', package_metrics, 'package-metrics'),
+    (package_group, 'issues', package_issues, 'package-issues'),
+    (package_group, 'dependencies', package_dependencies, 'package-dependencies'),
+    (repo_group, 'index', index, 'index'),
+    (repo_group, 'query', query, 'query'),
+]
+
+PROG = 'python-refactor-cli'
+
+COMMAND_EXAMPLES: Dict[str, List[str]] = {
+    'file analyze': [
+        f'{PROG} file analyze src/app.py',
+        f'{PROG} file analyze src/app.py --format json',
+    ],
+    'file long-functions': [
+        f'{PROG} file long-functions src/app.py --line-threshold 30 --format json',
+    ],
+    'file extraction': [
+        f'{PROG} file extraction src/app.py --function-name process_order',
+    ],
+    'test coverage': [
+        f'{PROG} test coverage src/ --test-path tests/ --target-coverage 80',
+    ],
+    'test tdd': [
+        f'{PROG} test tdd src/app.py --function-name process_order --format json',
+    ],
+    'security scan': [
+        f'{PROG} security scan src/app.py',
+        f'{PROG} security scan src/app.py --no-dependency-scan --format json',
+    ],
+    'package analyze': [
+        f'{PROG} package analyze src/mypackage --format json',
+    ],
+    'package metrics': [
+        f'{PROG} package metrics src/mypackage --format json',
+    ],
+    'package issues': [
+        f'{PROG} package issues src/mypackage --severity high --format json',
+    ],
+    'package dependencies': [
+        f'{PROG} package dependencies src/mypackage --show-circular',
+    ],
+    'repo index': [
+        f'{PROG} repo index . --database .refactoring_index.db',
+    ],
+    'repo query': [
+        f'{PROG} repo query --database .refactoring_index.db',
+    ],
+    'server': [
+        f'{PROG} server',
+    ],
+    'skill path': [
+        f'{PROG} skill path',
+    ],
+    'skills': [
+        f'{PROG} skills',
+        f'{PROG} skills --format json',
+    ],
+}
+
+
+def _hidden_alias(cmd: click.Command) -> click.Command:
+    """Return a hidden copy of a command, used for legacy flat names"""
+    alias = copy.copy(cmd)
+    alias.hidden = True
+    return alias
+
+
+for _group, _name, _cmd, _legacy in GROUPED_COMMANDS:
+    _group.add_command(_cmd, name=_name)
+    cli.add_command(_hidden_alias(_cmd), name=_legacy)
+
+
 @cli.group()
 def skill():
     """🧭 Skill file utilities for agent integration"""
 
 
+def _skill_file():
+    return importlib.resources.files("mcp_refactoring_assistant") / "skill" / "SKILL.md"
+
+
 @skill.command(name='path')
 def skill_path():
     """📍 Print the absolute path to the bundled SKILL.md"""
-    skill_file = importlib.resources.files("mcp_refactoring_assistant") / "skill" / "SKILL.md"
-    click.echo(str(skill_file))
+    click.echo(str(_skill_file()))
+
+
+def _iter_commands(ctx: click.Context, group: click.Group, prefix: str = ''):
+    """Yield (path, command, context) for every visible leaf command"""
+    for name in group.list_commands(ctx):
+        cmd = group.get_command(ctx, name)
+        if cmd is None or cmd.hidden:
+            continue
+        path = f'{prefix}{name}'
+        sub_ctx = click.Context(cmd, info_name=name, parent=ctx)
+        if isinstance(cmd, click.Group):
+            yield from _iter_commands(sub_ctx, cmd, f'{path} ')
+        else:
+            yield path, cmd, sub_ctx
+
+
+def _command_catalog(ctx: click.Context) -> List[Dict[str, Any]]:
+    root_ctx = ctx.find_root()
+    return [
+        {
+            'command': path,
+            'help': cmd.get_short_help_str(limit=120),
+            'usage': ' '.join([PROG, path, *cmd.collect_usage_pieces(sub_ctx)]),
+            'examples': COMMAND_EXAMPLES.get(path, []),
+        }
+        for path, cmd, sub_ctx in _iter_commands(root_ctx, root_ctx.command)
+    ]
+
+
+@cli.command()
+@click.option('--format', '-f', type=click.Choice(['markdown', 'json']), default='markdown', help='Output format')
+@click.pass_context
+def skills(ctx, format: str):
+    """📚 Print the agent skill plus all commands with examples"""
+
+    skill_text = _skill_file().read_text(encoding='utf-8')
+    catalog = _command_catalog(ctx)
+
+    if format == 'json':
+        click.echo(json.dumps({"skill": skill_text, "commands": catalog}, indent=2))
+        return
+
+    click.echo(skill_text.rstrip())
+    click.echo('\n## Available commands\n')
+    for entry in catalog:
+        click.echo(f"### `{entry['command']}`\n")
+        click.echo(f"{entry['help']}\n")
+        click.echo(f"Usage: `{entry['usage']}`\n")
+        if entry['examples']:
+            click.echo('```bash')
+            for example in entry['examples']:
+                click.echo(example)
+            click.echo('```\n')
+
+
+# Show examples at the bottom of each command's --help
+for _path, _examples in COMMAND_EXAMPLES.items():
+    _cmd = cli
+    for _part in _path.split():
+        _cmd = _cmd.commands[_part]
+    _cmd.epilog = "\b\nExamples:\n" + "\n".join(f"  {e}" for e in _examples)
 
 
 

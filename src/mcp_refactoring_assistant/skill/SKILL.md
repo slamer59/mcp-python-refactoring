@@ -16,31 +16,34 @@ Prefer running the CLI directly via subprocess (e.g. the Bash tool) over
 starting the MCP server for one-off analysis — it's faster and cheaper:
 
 ```bash
-uv run python-refactor-cli <command> --format json ...
+uv run python-refactor-cli <group> <command> --format json ...
 ```
 
 Every analysis command supports `--format json` for machine-parseable output.
-Run `uv run python-refactor-cli <command> --help` for full option details.
+Commands are grouped by capability (`file`, `test`, `security`, `package`,
+`repo`). Run `uv run python-refactor-cli skills` to list every command with
+examples, or `uv run python-refactor-cli <group> <command> --help` for full
+option details.
 
 ## Command reference
 
 | Command | Target | Use it to... |
 |---|---|---|
-| `analyze <file>` | file | Full refactoring analysis of a single file |
-| `find-long-functions <file> [-t N]` | file | Find functions at/over N lines (candidates for extraction) |
-| `extraction-guidance <file> [-fn NAME]` | file | Get step-by-step guidance for extracting a specific function |
-| `test-coverage <source> [-t tests/]` | file/dir | Find files/functions missing test coverage |
-| `tdd-guidance <file> [-fn NAME]` | file | Get Red-Green-Refactor guidance for a function |
-| `security-scan <file>` | file | Scan for security vulnerabilities, vulnerable deps, and outdated patterns |
-| `analyze-package <path>` | package/dir | Full structural analysis of a package |
-| `package-metrics <path>` | package/dir | Complexity, cohesion, coupling, health score |
-| `package-issues <path>` | package/dir | Structural issues (god package, circular deps, etc.) |
-| `package-dependencies <path>` | package/dir | Dependency graph and circular-dependency detection |
+| `file analyze <file>` | file | Full refactoring analysis of a single file |
+| `file long-functions <file> [-t N]` | file | Find functions at/over N lines (candidates for extraction) |
+| `file extraction <file> [-fn NAME]` | file | Get step-by-step guidance for extracting a specific function |
+| `test coverage <source> [-t tests/]` | file/dir | Find files/functions missing test coverage |
+| `test tdd <file> [-fn NAME]` | file | Get Red-Green-Refactor guidance for a function |
+| `security scan <file>` | file | Scan for security vulnerabilities, vulnerable deps, and outdated patterns |
+| `package analyze <path>` | package/dir | Full structural analysis of a package |
+| `package metrics <path>` | package/dir | Complexity, cohesion, coupling, health score |
+| `package issues <path>` | package/dir | Structural issues (god package, circular deps, etc.) |
+| `package dependencies <path>` | package/dir | Dependency graph and circular-dependency detection |
 
 Example:
 
 ```bash
-uv run python-refactor-cli find-long-functions src/app.py --line-threshold 30 --format json
+uv run python-refactor-cli file long-functions src/app.py --line-threshold 30 --format json
 ```
 
 ```json
@@ -62,15 +65,15 @@ available as MCP tool calls instead of CLI subprocess calls:
 
 | CLI command | MCP tool |
 |---|---|
-| `analyze` | `analyze_python_file` |
-| `find-long-functions` | `find_long_functions` |
-| `extraction-guidance` | `get_extraction_guidance` |
-| `test-coverage` | `analyze_test_coverage` |
-| `tdd-guidance` | `tdd_refactoring_guidance` |
-| `security-scan` | `analyze_security_and_patterns` |
-| `analyze-package` | `analyze_python_package` |
-| `package-metrics` | `get_package_metrics` |
-| `package-issues` | `find_package_issues` |
+| `file analyze` | `analyze_python_file` |
+| `file long-functions` | `find_long_functions` |
+| `file extraction` | `get_extraction_guidance` |
+| `test coverage` | `analyze_test_coverage` |
+| `test tdd` | `tdd_refactoring_guidance` |
+| `security scan` | `analyze_security_and_patterns` |
+| `package analyze` | `analyze_python_package` |
+| `package metrics` | `get_package_metrics` |
+| `package issues` | `find_package_issues` |
 
 Only fall back to MCP tool calls when the CLI isn't reachable (e.g. no shell
 access) — otherwise use the CLI.
@@ -79,17 +82,17 @@ access) — otherwise use the CLI.
 
 **Find and fix long functions:**
 ```bash
-uv run python-refactor-cli find-long-functions src/app.py --format json
-uv run python-refactor-cli extraction-guidance src/app.py --function-name process_order
+uv run python-refactor-cli file long-functions src/app.py --format json
+uv run python-refactor-cli file extraction src/app.py --function-name process_order
 ```
 
 **Pre-commit security check:**
 ```bash
-uv run python-refactor-cli security-scan src/app.py --format table
+uv run python-refactor-cli security scan src/app.py --format table
 ```
 
 **Assess a package before a larger refactor:**
 ```bash
-uv run python-refactor-cli package-metrics src/mypackage --format json
-uv run python-refactor-cli package-issues src/mypackage --format json
+uv run python-refactor-cli package metrics src/mypackage --format json
+uv run python-refactor-cli package issues src/mypackage --format json
 ```
